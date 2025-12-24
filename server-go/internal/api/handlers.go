@@ -102,6 +102,27 @@ func (h *Handler) HandleAction(w http.ResponseWriter, r *http.Request) {
 		visible := getBoolParam(req.Params, "visible")
 		err = actions.SetSourceVisibility(client, sourceName, visible)
 
+	// Volume control
+	case "set_input_volume":
+		inputName := getStringParam(req.Params, "input_name")
+		volumeDb := getFloatParam(req.Params, "volume_db")
+		err = actions.SetInputVolume(client, inputName, volumeDb)
+
+	case "get_input_volume":
+		inputName := getStringParam(req.Params, "input_name")
+		volume, volumeErr := actions.GetInputVolume(client, inputName)
+		if volumeErr != nil {
+			err = volumeErr
+		} else {
+			data = map[string]interface{}{"volume_db": volume}
+		}
+
+	// Screenshot
+	case "take_screenshot":
+		sourceName := getStringParam(req.Params, "source_name")
+		filePath := getStringParam(req.Params, "file_path")
+		err = actions.TakeSourceScreenshot(client, sourceName, filePath)
+
 	default:
 		respondError(w, fmt.Sprintf("Unknown action: %s", req.Action), http.StatusBadRequest)
 		return
@@ -215,6 +236,22 @@ func getBoolParam(params map[string]interface{}, key string) bool {
 		}
 	}
 	return false
+}
+
+func getFloatParam(params map[string]interface{}, key string) float64 {
+	if val, ok := params[key]; ok {
+		switch v := val.(type) {
+		case float64:
+			return v
+		case float32:
+			return float64(v)
+		case int:
+			return float64(v)
+		case int64:
+			return float64(v)
+		}
+	}
+	return 0.0
 }
 
 func respondSuccess(w http.ResponseWriter, message string, data interface{}) {

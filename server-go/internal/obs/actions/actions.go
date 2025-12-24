@@ -5,6 +5,7 @@ import (
 	"github.com/andreykaipov/goobs/api/requests/inputs"
 	"github.com/andreykaipov/goobs/api/requests/sceneitems"
 	"github.com/andreykaipov/goobs/api/requests/scenes"
+	"github.com/andreykaipov/goobs/api/requests/sources"
 )
 
 // Scene actions
@@ -29,7 +30,7 @@ func GetSceneList(client *goobs.Client) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	
 	scenes := make([]string, len(resp.Scenes))
 	for i, scene := range resp.Scenes {
 		scenes[i] = scene.SceneName
@@ -130,12 +131,33 @@ func GetInputList(client *goobs.Client) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	
 	inputNames := make([]string, len(resp.Inputs))
 	for i, input := range resp.Inputs {
 		inputNames[i] = input.InputName
 	}
 	return inputNames, nil
+}
+
+// Volume control actions
+func SetInputVolume(client *goobs.Client, inputName string, volumeDb float64) error {
+	params := &inputs.SetInputVolumeParams{
+		InputName:     &inputName,
+		InputVolumeDb: &volumeDb,
+	}
+	_, err := client.Inputs.SetInputVolume(params)
+	return err
+}
+
+func GetInputVolume(client *goobs.Client, inputName string) (float64, error) {
+	params := &inputs.GetInputVolumeParams{
+		InputName: &inputName,
+	}
+	resp, err := client.Inputs.GetInputVolume(params)
+	if err != nil {
+		return 0, err
+	}
+	return resp.InputVolumeDb, nil
 }
 
 // Source visibility actions
@@ -145,13 +167,13 @@ func SetSourceVisibility(client *goobs.Client, sourceName string, visible bool) 
 	if err != nil {
 		return err
 	}
-
+	
 	// Get scene item ID
 	itemID, err := GetSceneItemId(client, currentScene, sourceName)
 	if err != nil {
 		return err
 	}
-
+	
 	params := &sceneitems.SetSceneItemEnabledParams{
 		SceneName:        &currentScene,
 		SceneItemId:      &itemID,
@@ -170,7 +192,18 @@ func GetSceneItemId(client *goobs.Client, sceneName, sourceName string) (int, er
 	if err != nil {
 		return 0, err
 	}
-
-	// SceneItemId is already an int in goobs
+	
 	return resp.SceneItemId, nil
+}
+
+// Screenshot action
+func TakeSourceScreenshot(client *goobs.Client, sourceName, filePath string) error {
+	imageFormat := "png"
+	params := &sources.SaveSourceScreenshotParams{
+		SourceName:    &sourceName,
+		ImageFormat:   &imageFormat,
+		ImageFilePath: &filePath,
+	}
+	_, err := client.Sources.SaveSourceScreenshot(params)
+	return err
 }

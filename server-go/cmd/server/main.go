@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -74,7 +75,7 @@ func main() {
 	// Set up connection callback
 	obsManager.OnConnect(func() {
 		logger.Info("✅ Connected to OBS!")
-		
+
 		// Get OBS version
 		version, err := obsManager.GetVersion()
 		if err != nil {
@@ -108,7 +109,7 @@ func main() {
 
 	// Start HTTP API server
 	apiHandler := api.NewHandler(obsManager, logger)
-	
+
 	http.HandleFunc("/api/action", apiHandler.HandleAction)
 	http.HandleFunc("/api/status", apiHandler.HandleGetStatus)
 	http.HandleFunc("/api/scenes", apiHandler.HandleGetScenes)
@@ -119,9 +120,13 @@ func main() {
 	})
 
 	go func() {
-		addr := fmt.Sprintf(":%d", *httpPort)
-		logger.Infof("🌐 HTTP API server starting on http://localhost%s", addr)
-		if err := http.ListenAndServe(addr, nil); err != nil {
+		addr := fmt.Sprintf("0.0.0.0:%d", *httpPort)
+		listener, err := net.Listen("tcp4", addr)
+		if err != nil {
+			logger.Fatalf("Failed to create IPv4 listener: %v", err)
+		}
+		logger.Infof("🌐 HTTP API server starting on http://%s (IPv4)", listener.Addr().String())
+		if err := http.Serve(listener, nil); err != nil {
 			logger.Fatalf("HTTP server failed: %v", err)
 		}
 	}()

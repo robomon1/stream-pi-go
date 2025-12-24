@@ -1,9 +1,9 @@
-// Stream-Pi Client JavaScript
+// Stream-Pi Deck Client
 
-class StreamPiClient {
+class StreamPiDeck {
     constructor() {
         this.config = null;
-        this.editMode = false;
+        this.currentView = 'deck';  // 'deck' or 'config'
         this.ws = null;
         this.currentButton = null;
         this.scenes = [];
@@ -14,12 +14,15 @@ class StreamPiClient {
 
     async init() {
         await this.loadConfig();
-        this.renderGrid();
+        this.renderDeck();
         this.setupEventListeners();
         this.connectWebSocket();
         await this.loadScenes();
         await this.loadInputs();
         await this.updateStatus();
+        
+        // Start status polling
+        setInterval(() => this.updateStatus(), 5000);
     }
 
     async loadConfig() {
@@ -75,10 +78,10 @@ class StreamPiClient {
         });
     }
 
-    renderGrid() {
+    renderDeck() {
         const grid = document.getElementById('button-grid');
         grid.innerHTML = '';
-        grid.style.gridTemplateColumns = `repeat(${this.config.grid.cols}, 1fr)`;
+        grid.style.gridTemplateColumns = `repeat(${this.config.grid.cols}, 80px)`;
 
         // Create all grid positions
         for (let row = 0; row < this.config.grid.rows; row++) {
@@ -87,21 +90,17 @@ class StreamPiClient {
                 const button = this.config.buttons.find(b => b.id === buttonId);
 
                 const btnElement = document.createElement('button');
-                btnElement.className = 'stream-button';
+                btnElement.className = 'deck-button';
                 btnElement.dataset.id = buttonId;
-                btnElement.dataset.row = row;
-                btnElement.dataset.col = col;
 
                 if (button) {
-                    btnElement.textContent = button.text;
-                    btnElement.style.backgroundColor = button.color;
+                    btnElement.style.background = button.color;
+                    const textDiv = document.createElement('div');
+                    textDiv.className = 'text';
+                    textDiv.textContent = button.text;
+                    btnElement.appendChild(textDiv);
                 } else {
                     btnElement.classList.add('empty');
-                    btnElement.textContent = '+';
-                }
-
-                if (this.editMode) {
-                    btnElement.classList.add('edit-mode');
                 }
 
                 btnElement.addEventListener('click', () => this.handleButtonClick(buttonId));
@@ -110,18 +109,59 @@ class StreamPiClient {
         }
     }
 
-    handleButtonClick(buttonId) {
-        if (this.editMode) {
-            this.showConfigModal(buttonId);
-        } else {
-            this.pressButton(buttonId);
+    renderConfigView() {
+        // Update grid inputs
+        document.getElementById('grid-rows').value = this.config.grid.rows;
+        document.getElementById('grid-cols').value = this.config.grid.cols;
+
+        // Render button list
+        const buttonList = document.getElementById('button-list');
+        const emptyState = document.getElementById('button-empty-state');
+        
+        buttonList.innerHTML = '';
+
+        if (this.config.buttons.length === 0) {
+            buttonList.style.display = 'none';
+            emptyState.style.display = 'block';
+            return;
         }
+
+        buttonList.style.display = 'grid';
+        emptyState.style.display = 'none';
+
+        this.config.buttons.forEach(button => {
+            const card = document.createElement('div');
+            card.className = 'button-card';
+            card.onclick = () => this.showConfigModal(button.id);
+
+            card.innerHTML = `
+                <div class="button-card-header">
+                    <div class="button-card-id">${button.id}</div>
+                    <div class="button-card-color" style="background-color: ${button.color}"></div>
+                </div>
+                <div class="button-card-title">${button.text}</div>
+                <div class="button-card-action">${this.formatActionName(button.action.type)}</div>
+            `;
+
+            buttonList.appendChild(card);
+        });
     }
 
-    async pressButton(buttonId) {
+    formatActionName(actionType) {
+        return actionType
+            .split('_')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+    }
+
+    handleButtonClick(buttonId) {
         const button = this.config.buttons.find(b => b.id === buttonId);
         if (!button) return;
 
+        this.pressButton(buttonId);
+    }
+
+    async pressButton(buttonId) {
         try {
             const response = await fetch(`/api/buttons/${buttonId}/press`, {
                 method: 'POST'
@@ -169,8 +209,10 @@ class StreamPiClient {
         // Hide all param fields
         document.getElementById('scene-param').style.display = 'none';
         document.getElementById('input-param').style.display = 'none';
+        document.getElementById('volume-param').style.display = 'none';
         document.getElementById('source-param').style.display = 'none';
         document.getElementById('visibility-param').style.display = 'none';
+        document.getElementById('screenshot-param').style.display = 'none';
 
         // Show relevant param fields
         if (actionType === 'switch_scene') {
@@ -183,6 +225,15 @@ class StreamPiClient {
             if (params.input_name) {
                 document.getElementById('input-name').value = params.input_name;
             }
+        } else if (actionType === 'set_input_volume') {
+            document.getElementById('input-param').style.display = 'block';
+            document.getElementById('volume-param').style.display = 'block';
+            if (params.input_name) {
+                document.getElementById('input-name').value = params.input_name;
+            }
+            if (params.volume_db !== undefined) {
+                document.getElementById('volume-db').value = params.volume_db;
+            }
         } else if (actionType === 'set_source_visibility') {
             document.getElementById('source-param').style.display = 'block';
             document.getElementById('visibility-param').style.display = 'block';
@@ -191,6 +242,15 @@ class StreamPiClient {
             }
             if (params.visible !== undefined) {
                 document.getElementById('visibility').value = params.visible.toString();
+            }
+        } else if (actionType === 'take_screenshot') {
+            document.getElementById('source-param').style.display = 'block';
+            document.getElementById('screenshot-param').style.display = 'block';
+            if (params.source_name) {
+                document.getElementById('source-name').value = params.source_name;
+            }
+            if (params.file_path) {
+                document.getElementById('file-path').value = params.file_path;
             }
         }
     }
@@ -213,9 +273,15 @@ class StreamPiClient {
             params.scene_name = formData.get('scene_name');
         } else if (actionType.includes('input') || actionType.includes('mute')) {
             params.input_name = formData.get('input_name');
+        } else if (actionType === 'set_input_volume') {
+            params.input_name = formData.get('input_name');
+            params.volume_db = parseFloat(formData.get('volume_db'));
         } else if (actionType === 'set_source_visibility') {
             params.source_name = formData.get('source_name');
             params.visible = formData.get('visible') === 'true';
+        } else if (actionType === 'take_screenshot') {
+            params.source_name = formData.get('source_name');
+            params.file_path = formData.get('file_path');
         }
 
         const [, row, col] = this.currentButton.split('-').map(Number);
@@ -241,7 +307,8 @@ class StreamPiClient {
 
             if (response.ok) {
                 await this.loadConfig();
-                this.renderGrid();
+                this.renderDeck();
+                this.renderConfigView();
                 this.hideConfigModal();
             }
         } catch (error) {
@@ -261,7 +328,8 @@ class StreamPiClient {
 
             if (response.ok) {
                 await this.loadConfig();
-                this.renderGrid();
+                this.renderDeck();
+                this.renderConfigView();
                 this.hideConfigModal();
             }
         } catch (error) {
@@ -269,34 +337,68 @@ class StreamPiClient {
         }
     }
 
-    toggleEditMode() {
-        this.editMode = !this.editMode;
-        const btn = document.getElementById('edit-mode-btn');
-        const saveBtn = document.getElementById('save-config-btn');
+    async updateGrid() {
+        const rows = parseInt(document.getElementById('grid-rows').value);
+        const cols = parseInt(document.getElementById('grid-cols').value);
 
-        if (this.editMode) {
-            btn.textContent = 'Exit Edit Mode';
-            btn.classList.add('btn-primary');
-            btn.classList.remove('btn-secondary');
-            saveBtn.style.display = 'inline-block';
-        } else {
-            btn.textContent = 'Edit Mode';
-            btn.classList.add('btn-secondary');
-            btn.classList.remove('btn-primary');
-            saveBtn.style.display = 'none';
+        if (rows < 1 || rows > 10 || cols < 1 || cols > 10) {
+            alert('Rows and columns must be between 1 and 10');
+            return;
         }
 
-        this.renderGrid();
+        this.config.grid.rows = rows;
+        this.config.grid.cols = cols;
+
+        try {
+            const response = await fetch('/api/buttons', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(this.config)
+            });
+
+            if (response.ok) {
+                await this.loadConfig();
+                this.renderDeck();
+                this.renderConfigView();
+            }
+        } catch (error) {
+            console.error('Failed to update grid:', error);
+        }
+    }
+
+    switchView(view) {
+        const deckView = document.getElementById('deck-view');
+        const configView = document.getElementById('config-view');
+
+        if (view === 'config') {
+            deckView.classList.add('hidden');
+            configView.classList.add('active');
+            this.renderConfigView();
+            this.currentView = 'config';
+        } else {
+            deckView.classList.remove('hidden');
+            configView.classList.remove('active');
+            this.currentView = 'deck';
+        }
     }
 
     setupEventListeners() {
-        // Edit mode toggle
-        document.getElementById('edit-mode-btn').addEventListener('click', () => {
-            this.toggleEditMode();
+        // View switching
+        document.getElementById('btn-configure').addEventListener('click', () => {
+            this.switchView('config');
+        });
+
+        document.getElementById('btn-back-to-deck').addEventListener('click', () => {
+            this.switchView('deck');
+        });
+
+        // Grid configuration
+        document.getElementById('btn-update-grid').addEventListener('click', () => {
+            this.updateGrid();
         });
 
         // Add button
-        document.getElementById('add-button-btn').addEventListener('click', () => {
+        document.getElementById('btn-add-button').addEventListener('click', () => {
             // Find first empty slot
             for (let row = 0; row < this.config.grid.rows; row++) {
                 for (let col = 0; col < this.config.grid.cols; col++) {
@@ -307,7 +409,7 @@ class StreamPiClient {
                     }
                 }
             }
-            alert('Grid is full!');
+            alert('Grid is full! Increase grid size or delete a button.');
         });
 
         // Modal form
@@ -375,20 +477,20 @@ class StreamPiClient {
     }
 
     updateStatusDisplay(status) {
-        const streamStatus = document.getElementById('stream-status');
-        const recordStatus = document.getElementById('record-status');
+        const streamIndicator = document.getElementById('stream-indicator');
+        const recordIndicator = document.getElementById('record-indicator');
         const currentScene = document.getElementById('current-scene');
 
         if (status.streaming) {
-            streamStatus.classList.add('active');
+            streamIndicator.classList.add('active');
         } else {
-            streamStatus.classList.remove('active');
+            streamIndicator.classList.remove('active');
         }
 
         if (status.recording) {
-            recordStatus.classList.add('active', 'recording');
+            recordIndicator.classList.add('active', 'recording');
         } else {
-            recordStatus.classList.remove('active', 'recording');
+            recordIndicator.classList.remove('active', 'recording');
         }
 
         if (status.current_scene) {
@@ -397,7 +499,7 @@ class StreamPiClient {
     }
 }
 
-// Initialize the client when the page loads
+// Initialize the deck when the page loads
 document.addEventListener('DOMContentLoaded', () => {
-    window.streamPi = new StreamPiClient();
+    window.streamPiDeck = new StreamPiDeck();
 });
