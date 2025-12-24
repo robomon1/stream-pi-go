@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"path/filepath"
 
@@ -58,9 +59,19 @@ func (s *Server) setupRoutes() {
 	s.router.PathPrefix("/").Handler(http.FileServer(http.Dir(templatesDir)))
 }
 
-// Start starts the web server
+// Start starts the web server - FORCED TO IPv4
 func (s *Server) Start() error {
-	addr := fmt.Sprintf(":%d", s.port)
-	s.logger.Infof("Starting Stream-Pi Client web server on http://localhost%s", addr)
-	return http.ListenAndServe(addr, s.router)
+	addr := fmt.Sprintf("0.0.0.0:%d", s.port)
+	s.logger.Infof("Starting Stream-Pi Client web server on http://%s", addr)
+	
+	// Create TCP4 listener to force IPv4
+	listener, err := net.Listen("tcp4", addr)
+	if err != nil {
+		return fmt.Errorf("failed to create IPv4 listener: %w", err)
+	}
+	
+	s.logger.Infof("✅ Listening on IPv4: %s", listener.Addr().String())
+	s.logger.Infof("Access from this computer: http://localhost:%d", s.port)
+	
+	return http.Serve(listener, s.router)
 }
