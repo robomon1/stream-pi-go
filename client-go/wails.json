@@ -6,7 +6,7 @@
   "frontend:build": "",
   "frontend:dev": "",
   "frontend:dev:watcher": "",
-  "frontend:dev:serverUrl": "auto",
+  "frontend:dev:serverUrl": "",
   "author": {
     "name": "Stream-Pi",
     "email": ""
@@ -16,15 +16,14 @@
     "productName": "Stream-Pi Deck",
     "productVersion": "1.0.0",
     "copyright": "Copyright © 2024",
-    "comments": "OBS Studio controller",
-    "icon": "build/appicon.png"
+    "comments": "OBS Studio controller"
   },
   "nsisType": "multiple",
   "obfuscated": false,
   "runNonNativeBuildScript": false,
   "wailsjsdir": "./frontend",
   "assetdir": "./frontend",
-  "reloaddirs": "",
+  "reloaddirs": "frontend",
   "build:dir": "build",
   "debounceMS": 100
 }
