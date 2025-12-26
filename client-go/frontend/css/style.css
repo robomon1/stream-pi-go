@@ -30,25 +30,19 @@ body {
 }
 
 .deck-header {
-    margin-bottom: 30px;
+    margin-bottom: 20px;
     text-align: center;
 }
 
 .deck-title {
-    font-size: 1.8em;
+    font-size: 1.2em;
     font-weight: 300;
     color: #888;
-    margin-bottom: 15px;
+    margin-bottom: 10px;
 }
 
 .status-bar {
-    display: flex;
-    gap: 25px;
-    justify-content: center;
-    padding: 12px 25px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 10px;
-    font-size: 0.9em;
+    display: none; /* Hidden - using button indicators instead */
 }
 
 .status-item {
@@ -92,7 +86,7 @@ body {
 /* Stream Deck Housing */
 .deck-container {
     background: linear-gradient(145deg, #1a1a1a, #0f0f0f);
-    padding: 40px;
+    padding: 10px;
     border-radius: 24px;
     box-shadow: 
         0 20px 60px rgba(0, 0, 0, 0.8),
@@ -116,7 +110,7 @@ body {
     cursor: pointer;
     transition: all 0.15s ease;
     box-shadow: 
-        0 3px 6px rgba(0, 0, 0, 0.5),
+        0 2px 3px rgba(0, 0, 0, 0.4),
         inset 0 1px 0 rgba(255, 255, 255, 0.1),
         inset 0 -1px 0 rgba(0, 0, 0, 0.5);
     position: relative;
@@ -135,14 +129,14 @@ body {
 .deck-button:hover:not(.empty) {
     transform: translateY(-1px);
     box-shadow: 
-        0 5px 10px rgba(0, 0, 0, 0.7),
+        0 3px 5px rgba(0, 0, 0, 0.6),
         inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
 .deck-button:active:not(.empty) {
     transform: translateY(1px);
     box-shadow: 
-        0 1px 3px rgba(0, 0, 0, 0.5),
+        0 1px 2px rgba(0, 0, 0, 0.4),
         inset 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
@@ -151,8 +145,8 @@ body {
     color: #333;
     cursor: default;
     box-shadow: 
-        inset 0 2px 4px rgba(0, 0, 0, 0.6),
-        0 1px 2px rgba(255, 255, 255, 0.05);
+        inset 0 2px 3px rgba(0, 0, 0, 0.6),
+        0 1px 2px rgba(255, 255, 255, 0.03);
 }
 
 .deck-button .icon {
@@ -170,6 +164,51 @@ body {
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
+}
+
+/* Active state indicator - High contrast white dot with dark ring */
+.deck-button.active::before {
+    content: '';
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 14px;
+    height: 14px;
+    background: white;
+    border-radius: 50%;
+    border: 2px solid rgba(0, 0, 0, 0.8);
+    box-shadow: 
+        0 0 0 1px rgba(255, 255, 255, 0.3),
+        0 2px 4px rgba(0, 0, 0, 0.6);
+    animation: pulse-dot 2s infinite;
+    z-index: 10;
+}
+
+@keyframes pulse-dot {
+    0%, 100% { 
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% { 
+        opacity: 0.85;
+        transform: scale(1.1);
+    }
+}
+
+/* Active glow effect - subtle */
+.deck-button.active {
+    box-shadow: 
+        0 2px 3px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.5),
+        0 0 8px rgba(255, 255, 255, 0.3);
+}
+
+.deck-button.active:hover:not(.empty) {
+    box-shadow: 
+        0 3px 5px rgba(0, 0, 0, 0.7),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15),
+        0 0 12px rgba(255, 255, 255, 0.4);
 }
 
 /* Deck Controls */
@@ -561,7 +600,7 @@ body {
 
 @media (max-width: 768px) {
     .deck-container {
-        padding: 25px;
+        padding: 8px;
     }
     
     .deck-button {
@@ -597,6 +636,6 @@ body {
     }
     
     .deck-container {
-        padding: 20px;
+        padding: 6px;
     }
 }

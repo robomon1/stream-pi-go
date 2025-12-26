@@ -15,7 +15,7 @@ except ImportError:
     print("Install with: pip3 install Pillow")
     sys.exit(1)
 
-ICON_SOURCE = "./robo_stream.jpg"
+ICON_SOURCE = "./robo_stream.png"
 BUILD_DIR = "build"
 
 def create_icon_sizes():
@@ -23,10 +23,11 @@ def create_icon_sizes():
     
     if not os.path.exists(ICON_SOURCE):
         print(f"❌ Error: {ICON_SOURCE} not found")
-        print("Please place robo_stream.jpg in the current directory")
+        print("Please place robo_stream.png in the project root")
         sys.exit(1)
     
     print("🎨 Converting icon to all formats...")
+    print(f"📁 Source: {ICON_SOURCE}")
     
     # Create build directories
     Path(BUILD_DIR).mkdir(exist_ok=True)
@@ -34,17 +35,28 @@ def create_icon_sizes():
     Path(f"{BUILD_DIR}/windows").mkdir(exist_ok=True)
     Path(f"{BUILD_DIR}/linux").mkdir(exist_ok=True)
     
-    # Load source image
+    # Load source image and ensure RGBA mode for transparency
     img = Image.open(ICON_SOURCE)
+    print(f"📊 Source mode: {img.mode}, Size: {img.size}")
     
-    # Convert to RGBA if not already
+    # Convert to RGBA to preserve/add transparency
     if img.mode != 'RGBA':
+        print("⚠️  Converting to RGBA to support transparency...")
         img = img.convert('RGBA')
+    else:
+        print("✅ Source already has transparency (RGBA)")
     
-    # Create 1024x1024 PNG for Wails
+    # Create 1024x1024 PNG for Wails (preserve transparency)
     print("Creating appicon.png (1024x1024)...")
     icon_1024 = img.resize((1024, 1024), Image.Resampling.LANCZOS)
-    icon_1024.save(f"{BUILD_DIR}/appicon.png", "PNG")
+    icon_1024.save(f"{BUILD_DIR}/appicon.png", "PNG", optimize=True)
+    
+    # Verify transparency preserved
+    test_img = Image.open(f"{BUILD_DIR}/appicon.png")
+    if test_img.mode == 'RGBA':
+        print("  ✅ Transparency preserved in appicon.png")
+    else:
+        print(f"  ⚠️  Warning: Image mode is {test_img.mode}, expected RGBA")
     
     # Create Linux 512x512 PNG
     print("Creating Linux icon...")

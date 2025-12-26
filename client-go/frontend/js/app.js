@@ -7,6 +7,8 @@ class StreamPiDeck {
         this.currentButton = null;
         this.scenes = [];
         this.inputs = [];
+        this.currentStatus = null;
+        this.buttonElements = new Map();
 
         this.init();
     }
@@ -94,6 +96,9 @@ class StreamPiDeck {
         grid.innerHTML = '';
         grid.style.gridTemplateColumns = `repeat(${this.config.grid.cols}, 80px)`;
 
+        // Store button elements for state updates
+        this.buttonElements = new Map();
+
         for (let row = 0; row < this.config.grid.rows; row++) {
             for (let col = 0; col < this.config.grid.cols; col++) {
                 const buttonId = `btn-${row}-${col}`;
@@ -105,10 +110,22 @@ class StreamPiDeck {
 
                 if (button) {
                     btnElement.style.background = button.color;
+                    btnElement.dataset.action = button.action.type;
+                    
+                    // Store action params for state checking
+                    if (button.action.params) {
+                        if (button.action.params.scene_name) {
+                            btnElement.dataset.sceneName = button.action.params.scene_name;
+                        }
+                    }
+                    
                     const textDiv = document.createElement('div');
                     textDiv.className = 'text';
                     textDiv.textContent = button.text;
                     btnElement.appendChild(textDiv);
+                    
+                    // Store reference for state updates
+                    this.buttonElements.set(buttonId, btnElement);
                 } else {
                     btnElement.classList.add('empty');
                 }
@@ -117,6 +134,9 @@ class StreamPiDeck {
                 grid.appendChild(btnElement);
             }
         }
+        
+        // Update button states after rendering
+        this.updateButtonStates();
     }
 
     renderConfigView() {
@@ -459,25 +479,38 @@ class StreamPiDeck {
     }
 
     updateStatusDisplay(status) {
-        const streamIndicator = document.getElementById('stream-indicator');
-        const recordIndicator = document.getElementById('record-indicator');
-        const currentScene = document.getElementById('current-scene');
-
-        if (status.streaming) {
-            streamIndicator.classList.add('active');
-        } else {
-            streamIndicator.classList.remove('active');
-        }
-
-        if (status.recording) {
-            recordIndicator.classList.add('active', 'recording');
-        } else {
-            recordIndicator.classList.remove('active', 'recording');
-        }
-
-        if (status.current_scene) {
-            currentScene.textContent = status.current_scene;
-        }
+        // Update button states based on status
+        this.currentStatus = status;
+        this.updateButtonStates();
+    }
+    
+    updateButtonStates() {
+        if (!this.buttonElements || !this.currentStatus) return;
+        
+        // Iterate through all button elements
+        this.buttonElements.forEach((btnElement, buttonId) => {
+            const action = btnElement.dataset.action;
+            
+            // Remove active class first
+            btnElement.classList.remove('active');
+            
+            // Check for active state based on action type
+            if (action === 'toggle_stream' || action === 'start_stream' || action === 'stop_stream') {
+                if (this.currentStatus.streaming) {
+                    btnElement.classList.add('active');
+                }
+            } else if (action === 'toggle_record' || action === 'start_record' || action === 'stop_record') {
+                if (this.currentStatus.recording) {
+                    btnElement.classList.add('active');
+                }
+            } else if (action === 'switch_scene') {
+                // Check if this button's scene matches current scene
+                const sceneName = btnElement.dataset.sceneName;
+                if (sceneName && this.currentStatus.current_scene === sceneName) {
+                    btnElement.classList.add('active');
+                }
+            }
+        });
     }
 }
 
