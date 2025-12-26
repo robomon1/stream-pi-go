@@ -1,18 +1,20 @@
 #!/bin/bash
-# Convert robo_stream.jpg to all needed icon formats
+# Convert robo_stream.png to all needed icon formats
+# Preserves transparency from source image
 
 set -e
 
-ICON_SOURCE="./robo_stream.jpg"
+ICON_SOURCE="../robo_stream.png"
 BUILD_DIR="build"
 
 if [ ! -f "$ICON_SOURCE" ]; then
-    echo "❌ Error: robo_stream.jpg not found in project root"
-    echo "Please place robo_stream.jpg in ~/git/stream-pi-go/"
+    echo "❌ Error: robo_stream.png not found in project root"
+    echo "Please place robo_stream.png in ~/git/stream-pi-go/"
     exit 1
 fi
 
 echo "🎨 Converting icon to all formats..."
+echo "📁 Source: $ICON_SOURCE"
 
 # Create build directory if it doesn't exist
 mkdir -p "$BUILD_DIR"
@@ -28,8 +30,16 @@ if ! command -v convert &> /dev/null; then
 fi
 
 # Convert to PNG and resize to 1024x1024 (Wails standard)
+# IMPORTANT: Use -background none to preserve transparency
 echo "Creating appicon.png (1024x1024)..."
-convert "$ICON_SOURCE" -resize 1024x1024 -background transparent -gravity center -extent 1024x1024 "$BUILD_DIR/appicon.png"
+convert "$ICON_SOURCE" \
+    -background none \
+    -resize 1024x1024 \
+    -gravity center \
+    -extent 1024x1024 \
+    "$BUILD_DIR/appicon.png"
+
+echo "  ✅ Transparency preserved in appicon.png"
 
 # For macOS - create icon sizes
 echo "Creating macOS icons..."
@@ -39,17 +49,17 @@ mkdir -p "$BUILD_DIR/darwin"
 ICONSET="$BUILD_DIR/darwin/icon.iconset"
 mkdir -p "$ICONSET"
 
-# Generate all required macOS icon sizes
-convert "$ICON_SOURCE" -resize 16x16 "$ICONSET/icon_16x16.png"
-convert "$ICON_SOURCE" -resize 32x32 "$ICONSET/icon_16x16@2x.png"
-convert "$ICON_SOURCE" -resize 32x32 "$ICONSET/icon_32x32.png"
-convert "$ICON_SOURCE" -resize 64x64 "$ICONSET/icon_32x32@2x.png"
-convert "$ICON_SOURCE" -resize 128x128 "$ICONSET/icon_128x128.png"
-convert "$ICON_SOURCE" -resize 256x256 "$ICONSET/icon_128x128@2x.png"
-convert "$ICON_SOURCE" -resize 256x256 "$ICONSET/icon_256x256.png"
-convert "$ICON_SOURCE" -resize 512x512 "$ICONSET/icon_256x256@2x.png"
-convert "$ICON_SOURCE" -resize 512x512 "$ICONSET/icon_512x512.png"
-convert "$ICON_SOURCE" -resize 1024x1024 "$ICONSET/icon_512x512@2x.png"
+# Generate all required macOS icon sizes with transparency preserved
+convert "$ICON_SOURCE" -background none -resize 16x16 "$ICONSET/icon_16x16.png"
+convert "$ICON_SOURCE" -background none -resize 32x32 "$ICONSET/icon_16x16@2x.png"
+convert "$ICON_SOURCE" -background none -resize 32x32 "$ICONSET/icon_32x32.png"
+convert "$ICON_SOURCE" -background none -resize 64x64 "$ICONSET/icon_32x32@2x.png"
+convert "$ICON_SOURCE" -background none -resize 128x128 "$ICONSET/icon_128x128.png"
+convert "$ICON_SOURCE" -background none -resize 256x256 "$ICONSET/icon_128x128@2x.png"
+convert "$ICON_SOURCE" -background none -resize 256x256 "$ICONSET/icon_256x256.png"
+convert "$ICON_SOURCE" -background none -resize 512x512 "$ICONSET/icon_256x256@2x.png"
+convert "$ICON_SOURCE" -background none -resize 512x512 "$ICONSET/icon_512x512.png"
+convert "$ICON_SOURCE" -background none -resize 1024x1024 "$ICONSET/icon_512x512@2x.png"
 
 # Create .icns file (macOS only)
 if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -60,10 +70,10 @@ else
     echo "⚠️  Skipping .icns creation (requires macOS)"
 fi
 
-# For Windows - create .ico with multiple sizes
+# For Windows - create .ico with multiple sizes (preserving transparency)
 echo "Creating Windows icon..."
 mkdir -p "$BUILD_DIR/windows"
-convert "$ICON_SOURCE" -resize 256x256 \
+convert "$ICON_SOURCE" -background none -resize 256x256 \
     \( -clone 0 -resize 16x16 \) \
     \( -clone 0 -resize 32x32 \) \
     \( -clone 0 -resize 48x48 \) \
@@ -71,13 +81,13 @@ convert "$ICON_SOURCE" -resize 256x256 \
     \( -clone 0 -resize 128x128 \) \
     \( -clone 0 -resize 256x256 \) \
     -delete 0 "$BUILD_DIR/windows/icon.ico"
-echo "✅ Created icon.ico"
+echo "✅ Created icon.ico (with transparency)"
 
-# For Linux - create 512x512 PNG
+# For Linux - create 512x512 PNG (preserving transparency)
 echo "Creating Linux icon..."
 mkdir -p "$BUILD_DIR/linux"
-convert "$ICON_SOURCE" -resize 512x512 "$BUILD_DIR/linux/icon.png"
-echo "✅ Created Linux icon.png"
+convert "$ICON_SOURCE" -background none -resize 512x512 "$BUILD_DIR/linux/icon.png"
+echo "✅ Created Linux icon.png (with transparency)"
 
 echo ""
 echo "✅ Icon conversion complete!"
