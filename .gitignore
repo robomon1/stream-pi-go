@@ -68,3 +68,6 @@ go.work.sum
 .env
 venv
 
+# Claude
+.claude
+

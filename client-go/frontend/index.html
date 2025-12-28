@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="/css/style.css">
     <script src="/wails/ipc.js"></script>
     <script src="/wails/runtime.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
     <!-- DECK VIEW - Main Stream Deck Interface -->
@@ -112,6 +113,37 @@
                 <div class="form-group">
                     <label for="button-color">Button Color</label>
                     <input type="color" id="button-color" name="color" value="#3498db">
+                </div>
+
+                <div class="form-group">
+                    <label for="button-icon">Icon (Optional)</label>
+                    <select id="button-icon" name="icon">
+                        <option value="">-- No Icon --</option>
+                        <option value="video">📹 Video Camera</option>
+                        <option value="play">▶️ Play</option>
+                        <option value="pause">⏸️ Pause</option>
+                        <option value="stop-circle">⏹️ Stop</option>
+                        <option value="radio">📡 Live/On Air</option>
+                        <option value="wifi">📶 Streaming</option>
+                        <option value="circle">⏺️ Record</option>
+                        <option value="disc">💿 Recording</option>
+                        <option value="save">💾 Save</option>
+                        <option value="mic">🎤 Microphone</option>
+                        <option value="mic-off">🎤🚫 Mic Muted</option>
+                        <option value="volume-2">🔊 Volume</option>
+                        <option value="volume-x">🔇 Muted</option>
+                        <option value="headphones">🎧 Headphones</option>
+                        <option value="layout">📺 Scene Layout</option>
+                        <option value="layers">📄 Layers</option>
+                        <option value="grid-3x3">⊞ Grid</option>
+                        <option value="maximize">⛶ Fullscreen</option>
+                        <option value="camera">📷 Camera</option>
+                        <option value="camera-off">📷🚫 Camera Off</option>
+                        <option value="settings">⚙️ Settings</option>
+                        <option value="star">⭐ Favorite</option>
+                        <option value="heart">❤️ Like</option>
+                        <option value="zap">⚡ Power</option>
+                    </select>
                 </div>
 
                 <div class="form-group">

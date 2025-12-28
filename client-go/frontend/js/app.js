@@ -95,19 +95,19 @@ class StreamPiDeck {
         const grid = document.getElementById('button-grid');
         grid.innerHTML = '';
         grid.style.gridTemplateColumns = `repeat(${this.config.grid.cols}, 80px)`;
-
+    
         // Store button elements for state updates
         this.buttonElements = new Map();
-
+    
         for (let row = 0; row < this.config.grid.rows; row++) {
             for (let col = 0; col < this.config.grid.cols; col++) {
                 const buttonId = `btn-${row}-${col}`;
                 const button = this.config.buttons.find(b => b.id === buttonId);
-
+    
                 const btnElement = document.createElement('button');
                 btnElement.className = 'deck-button';
                 btnElement.dataset.id = buttonId;
-
+    
                 if (button) {
                     btnElement.style.background = button.color;
                     btnElement.dataset.action = button.action.type;
@@ -119,6 +119,19 @@ class StreamPiDeck {
                         }
                     }
                     
+                    // ✅ ADD ICON FIRST (if it exists)
+                    if (button.icon) {
+                        const iconDiv = document.createElement('div');
+                        iconDiv.className = 'icon';
+                        iconDiv.dataset.lucide = button.icon;
+                        btnElement.appendChild(iconDiv);
+                    }
+                    // const iconDiv = document.createElement('div');
+                    // iconDiv.className = 'icon';
+                    // iconDiv.dataset.lucide = 'video';  // Always use 'video'
+                    // btnElement.appendChild(iconDiv);                
+                    
+                    // ✅ THEN ADD TEXT
                     const textDiv = document.createElement('div');
                     textDiv.className = 'text';
                     textDiv.textContent = button.text;
@@ -129,16 +142,21 @@ class StreamPiDeck {
                 } else {
                     btnElement.classList.add('empty');
                 }
-
+    
                 btnElement.addEventListener('click', () => this.handleButtonClick(buttonId));
                 grid.appendChild(btnElement);
             }
         }
         
+        // ✅ INITIALIZE LUCIDE ICONS - VERY IMPORTANT!
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+        
         // Update button states after rendering
         this.updateButtonStates();
     }
-
+    
     renderConfigView() {
         document.getElementById('grid-rows').value = this.config.grid.rows;
         document.getElementById('grid-cols').value = this.config.grid.cols;
@@ -211,6 +229,7 @@ class StreamPiDeck {
             document.getElementById('button-text').value = button.text;
             document.getElementById('button-color').value = button.color;
             document.getElementById('action-type').value = button.action.type;
+            document.getElementById('button-icon').value = button.icon || '';
             this.updateActionParams(button.action.type, button.action.params);
             deleteBtn.style.display = 'block';
         } else {
@@ -311,6 +330,7 @@ class StreamPiDeck {
             col: col,
             text: text,
             color: color,
+            icon: formData.get('icon') || null,
             action: {
                 type: actionType,
                 params: params

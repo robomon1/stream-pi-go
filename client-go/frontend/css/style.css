@@ -639,3 +639,21 @@ body {
         padding: 6px;
     }
 }
+
+/* Button Icons */
+.deck-button .icon {
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.deck-button .icon svg {
+    width: 24px;
+    height: 24px;
+    stroke: currentColor;
+}
+
+.deck-button .text {
+    font-size: 0.85em;
+}
