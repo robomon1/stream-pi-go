@@ -1,10 +1,12 @@
+// Add this to your server/main.go file
+
 package main
 
 import (
 	"embed"
 	"log"
-	"os"
-	"path/filepath"
+
+	// "runtime"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -14,32 +16,32 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options/windows"
 )
 
-//go:embed all:frontend
+//go:embed all:frontend/dist
 var assets embed.FS
 
-// loadIcon loads the Linux icon if available
+//go:embed build/appicon.png
+var icon []byte
+
+// loadIcon returns the appropriate icon for the current platform
 func loadIcon() []byte {
-	iconPath := filepath.Join("build", "linux", "icon.png")
-	iconData, err := os.ReadFile(iconPath)
-	if err != nil {
-		return []byte{} // Return empty if icon not found
-	}
-	return iconData
+	return icon
 }
 
 func main() {
-	// Create application instance
+	// Create an instance of the app structure
 	app := NewApp()
 
-	// Create application window
+	// Create application with options
 	err := wails.Run(&options.App{
-		Title:  "Robo-Stream Client",
-		Width:  800,
-		Height: 600,
+		Title:     "Robo-Stream Server",
+		Width:     1280,
+		Height:    800,
+		MinWidth:  1024,
+		MinHeight: 768,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
-		BackgroundColour: &options.RGBA{R: 10, G: 10, B: 10, A: 255},
+		BackgroundColour: &options.RGBA{R: 15, G: 20, B: 25, A: 1},
 		OnStartup:        app.startup,
 		OnShutdown:       app.shutdown,
 		Bind: []interface{}{
@@ -47,13 +49,13 @@ func main() {
 		},
 		Mac: &mac.Options{
 			TitleBar: &mac.TitleBar{
-				TitlebarAppearsTransparent: true,
-				HideTitle:                  true,
+				TitlebarAppearsTransparent: false,
+				HideTitle:                  false,
 				HideTitleBar:               false,
-				FullSizeContent:            true,
+				FullSizeContent:            false,
 				UseToolbar:                 false,
 			},
-			WebviewIsTransparent: true,
+			WebviewIsTransparent: false,
 			WindowIsTranslucent:  false,
 		},
 		Windows: &windows.Options{
@@ -62,7 +64,7 @@ func main() {
 			DisableWindowIcon:    false,
 		},
 		Linux: &linux.Options{
-			Icon:                loadIcon(),
+			Icon:                loadIcon(), // ← Use the embedded icon
 			WindowIsTranslucent: false,
 		},
 	})
