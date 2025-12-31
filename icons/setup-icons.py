@@ -21,8 +21,8 @@ CLIENT_ICON_SOURCE = "robo-stream-client.png"
 SERVER_ICON_SOURCE = "robo-stream-server.png"
 
 # Target directories (relative to robo-stream root)
-CLIENT_BUILD_DIR = "../client/build"
-SERVER_BUILD_DIR = "../server/build"
+CLIENT_BUILD_DIR = "../client/icons"
+SERVER_BUILD_DIR = "../server/icons"
 
 def process_icon(source_file, build_dir, app_name):
     """Convert a source icon to all required formats and sizes"""
