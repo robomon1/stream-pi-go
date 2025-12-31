@@ -19,14 +19,14 @@ import (
 
 // App struct
 type App struct {
-	ctx                 context.Context
-	storage             *storage.Storage
-	buttonManager       *manager.ButtonManager
-	configManager       *manager.ConfigManager
-	sessionManager      *manager.SessionManager
-	obsManager          *manager.OBSManager
-	apiServer           *api.Server
-	lastOBSConnected    bool
+	ctx                  context.Context
+	storage              *storage.Storage
+	buttonManager        *manager.ButtonManager
+	configManager        *manager.ConfigManager
+	sessionManager       *manager.SessionManager
+	obsManager           *manager.OBSManager
+	apiServer            *api.Server
+	lastOBSConnected     bool
 	obsStatusInitialized bool
 }
 
@@ -332,31 +332,48 @@ func (a *App) DisconnectOBS() error {
 	return a.obsManager.Disconnect()
 }
 
+// func (a *App) GetOBSStatus() map[string]interface{} {
+// 	currentlyConnected := a.obsManager.IsConnected()
+
+// 	status := map[string]interface{}{
+// 		"connected": currentlyConnected,
+// 		"url":       a.obsManager.GetURL(),
+// 	}
+
+// 	// Log only on state changes or first call
+// 	if !a.obsStatusInitialized {
+// 		// First call - log it
+// 		log.Printf("📊 GetOBSStatus (initial): connected=%v", currentlyConnected)
+// 		a.obsStatusInitialized = true
+// 		a.lastOBSConnected = currentlyConnected
+// 	} else if currentlyConnected != a.lastOBSConnected {
+// 		// Connection state changed - log it
+// 		if currentlyConnected {
+// 			log.Printf("✅ OBS reconnected")
+// 		} else {
+// 			log.Printf("❌ OBS disconnected")
+// 		}
+// 		a.lastOBSConnected = currentlyConnected
+// 	}
+// 	// else: No state change, no logging (silent heartbeat)
+
+// 	return status
+// }
+
 func (a *App) GetOBSStatus() map[string]interface{} {
-	currentlyConnected := a.obsManager.IsConnected()
-	
-	status := map[string]interface{}{
-		"connected": currentlyConnected,
-		"url":       a.obsManager.GetURL(),
-	}
-
-	// Log only on state changes or first call
-	if !a.obsStatusInitialized {
-		// First call - log it
-		log.Printf("📊 GetOBSStatus (initial): connected=%v", currentlyConnected)
-		a.obsStatusInitialized = true
-		a.lastOBSConnected = currentlyConnected
-	} else if currentlyConnected != a.lastOBSConnected {
-		// Connection state changed - log it
-		if currentlyConnected {
-			log.Printf("✅ OBS reconnected")
-		} else {
-			log.Printf("❌ OBS disconnected")
+	// Get detailed status from OBS manager (includes streaming, recording, current_scene)
+	status, err := a.obsManager.GetStatus()
+	if err != nil {
+		// Return disconnected state
+		return map[string]interface{}{
+			"connected":     false,
+			"streaming":     false,
+			"recording":     false,
+			"current_scene": "",
 		}
-		a.lastOBSConnected = currentlyConnected
 	}
-	// else: No state change, no logging (silent heartbeat)
 
+	// Status already includes: connected, streaming, recording, current_scene
 	return status
 }
 

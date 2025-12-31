@@ -13,6 +13,15 @@
   let editingConfig = null;
   let editingButton = null;
   let draggedButton = null;
+  // OBS Status tracking for indicators
+  let obsStatus = {
+    streaming: false,
+    recording: false,
+    currentScene: ''
+  };
+
+  // Force re-evaluation when obsStatus changes
+  $: obsStatusKey = `${obsStatus.streaming}-${obsStatus.recording}-${obsStatus.currentScene}`;
 
   // Reinitialize icons when edit mode changes or buttons change
   $: if (editMode !== undefined || buttons.length) {
@@ -26,7 +35,75 @@
     setTimeout(() => {
       if (window.lucide) lucide.createIcons();
     }, 100);
+    
+    // Start OBS status polling for indicators
+    updateOBSStatus();
+    const interval = setInterval(updateOBSStatus, 2000);
+    
+    return () => clearInterval(interval);
   });
+
+  // Update OBS status for indicators
+  async function updateOBSStatus() {
+    try {
+      const status = await window.go.main.App.GetOBSStatus();
+      obsStatus = {
+        streaming: status.streaming || false,
+        recording: status.recording || false,
+        currentScene: status.current_scene || ''
+      };
+    } catch (err) {
+      // Silently fail - OBS might not be connected
+    }
+  }
+
+  // Check if button should show indicator
+  function shouldShowIndicator(button) {
+    if (!button?.action || editMode) return false;
+    
+    const actionType = button.action.type;
+    const sceneName = button.action.params?.scene_name;
+    
+    // Toggle actions
+    if (isToggleAction(actionType)) {
+      return isToggleActive(actionType);
+    }
+    
+    // Scene buttons
+    if (actionType === 'switch_scene' && sceneName) {
+      return sceneName === obsStatus.currentScene;
+    }
+    
+    return false;
+  }
+
+  function isToggleAction(actionType) {
+    const toggleActions = [
+      'toggle_stream', 'start_stream', 'stop_stream',
+      'toggle_record', 'start_record', 'stop_record',
+      'toggle_replay_buffer', 'start_replay_buffer', 'stop_replay_buffer'
+    ];
+    return toggleActions.includes(actionType);
+  }
+
+  function isToggleActive(actionType) {
+    // Start actions: show when state IS active
+    if (actionType === 'start_stream') return obsStatus.streaming;
+    if (actionType === 'start_record') return obsStatus.recording;
+    if (actionType === 'start_replay_buffer') return obsStatus.replayBuffer || false;
+    
+    // Stop actions: show when state is NOT active
+    if (actionType === 'stop_stream') return !obsStatus.streaming;
+    if (actionType === 'stop_record') return !obsStatus.recording;
+    if (actionType === 'stop_replay_buffer') return !(obsStatus.replayBuffer || false);
+    
+    // Toggle actions: show when state IS active
+    if (actionType === 'toggle_stream') return obsStatus.streaming;
+    if (actionType === 'toggle_record') return obsStatus.recording;
+    if (actionType === 'toggle_replay_buffer') return obsStatus.replayBuffer || false;
+    
+    return false;
+  }
 
   async function loadData() {
     try {
@@ -313,6 +390,12 @@
       console.log('Executing button action:', button.name, button.action);
       await window.go.main.App.ExecuteAction(button.action);
       console.log('Action executed successfully');
+      
+      // Update status immediately after toggle/scene actions
+      const actionType = button.action.type;
+      if (isToggleAction(actionType) || actionType === 'switch_scene') {
+        setTimeout(updateOBSStatus, 500);
+      }
     } catch (err) {
       console.error('Failed to execute action:', err);
       // Show error to user
@@ -439,6 +522,7 @@
                       <div 
                         class="button-display" 
                         class:clickable={!editMode}
+                        class:active={obsStatusKey && shouldShowIndicator(button)}
                         style="background: {button.color}"
                         on:click={() => executeButtonAction(button)}
                       >
@@ -976,5 +1060,32 @@
     padding: 20px;
     text-align: center;
     color: #94a3b8;
+  }
+
+  /* Indicator - white dot with black border */
+  .button-display.active::after {
+    content: '';
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 20px;
+    height: 20px;
+    background: white;
+    border: 4px solid black;
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    animation: pulse 2s infinite;
+    z-index: 10;
+  }
+
+  @keyframes pulse {
+    0%, 100% { 
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% { 
+      opacity: 0.8;
+      transform: scale(1.1);
+    }
   }
 </style>

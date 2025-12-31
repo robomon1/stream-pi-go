@@ -3,9 +3,9 @@
 let currentConfiguration = null;
 let obsStatus = {
     streaming: false,
-    recording: false
+    recording: false,
+    currentScene: ''
 };
-let recordingButtons = new Set(); // Track which buttons should show recording indicator
 
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
@@ -148,17 +148,21 @@ function renderButton(button) {
     buttonEl.style.backgroundColor = button.color;
     buttonEl.dataset.position = `btn-${button.row}-${button.col}`;
     buttonEl.dataset.buttonId = button.id;
-    buttonEl.dataset.actionType = button.action.type; // Store action type for recording detection
+    buttonEl.dataset.actionType = button.action.type; // Store action type
+    
+    // For scene buttons, store the scene name (it's in action.params.scene_name)
+    if (button.action.type === 'switch_scene' && button.action.params?.scene_name) {
+        buttonEl.dataset.sceneName = button.action.params.scene_name;
+        console.log('Scene button created:', button.text, 'scene:', button.action.params.scene_name);
+    }
 
     buttonEl.innerHTML = `
         <i data-lucide="${button.icon || 'square'}"></i>
         <span class="button-text">${button.text}</span>
     `;
 
-    // Check if this is a recording button and we're currently recording
-    if (isRecordingAction(button.action.type) && obsStatus.recording) {
-        buttonEl.classList.add('recording');
-    }
+    // Check if this button should show indicator based on current state
+    updateButtonIndicator(buttonEl);
 
     // Press by position
     buttonEl.addEventListener('click', () => pressButton(`btn-${button.row}-${button.col}`, button.action.type));
@@ -166,11 +170,92 @@ function renderButton(button) {
     grid.appendChild(buttonEl);
 }
 
-// Check if action type is related to recording
-function isRecordingAction(actionType) {
-    return actionType === 'start_record' || 
-           actionType === 'stop_record' || 
-           actionType === 'toggle_record';
+// Check if a button should show the indicator based on current OBS state
+function shouldShowIndicator(buttonEl) {
+    const actionType = buttonEl.dataset.actionType;
+    const sceneName = buttonEl.dataset.sceneName;
+    
+    // Check toggle actions
+    if (isToggleAction(actionType)) {
+        return isToggleActive(actionType);
+    }
+    
+    // Check scene buttons
+    if (actionType === 'switch_scene' && sceneName) {
+        const matches = sceneName === obsStatus.currentScene;
+        console.log('Scene check:', sceneName, 'vs current:', obsStatus.currentScene, '= match:', matches);
+        return matches;
+    }
+    
+    return false;
+}
+
+// Check if action type is a toggle
+function isToggleAction(actionType) {
+    const toggleActions = [
+        'toggle_stream',
+        'start_stream',
+        'stop_stream',
+        'toggle_record',
+        'start_record',
+        'stop_record',
+        'toggle_replay_buffer',
+        'start_replay_buffer',
+        'stop_replay_buffer'
+    ];
+    return toggleActions.includes(actionType);
+}
+
+// Check if toggle is active
+function isToggleActive(actionType) {
+    // Start actions: show indicator when state IS active
+    if (actionType === 'start_stream') return obsStatus.streaming;
+    if (actionType === 'start_record') return obsStatus.recording;
+    if (actionType === 'start_replay_buffer') return obsStatus.replayBuffer || false;
+    
+    // Stop actions: show indicator when state is NOT active (stopped)
+    if (actionType === 'stop_stream') return !obsStatus.streaming;
+    if (actionType === 'stop_record') return !obsStatus.recording;
+    if (actionType === 'stop_replay_buffer') return !(obsStatus.replayBuffer || false);
+    
+    // Toggle actions: show indicator when state IS active
+    if (actionType === 'toggle_stream') return obsStatus.streaming;
+    if (actionType === 'toggle_record') return obsStatus.recording;
+    if (actionType === 'toggle_replay_buffer') return obsStatus.replayBuffer || false;
+    
+    return false;
+}
+
+// Update indicator for a specific button
+function updateButtonIndicator(buttonEl) {
+    if (shouldShowIndicator(buttonEl)) {
+        buttonEl.classList.add('recording');
+    } else {
+        buttonEl.classList.remove('recording');
+    }
+}
+
+// Update all button indicators
+function updateAllIndicators() {
+    const buttons = document.querySelectorAll('.deck-button');
+    let indicatorCount = 0;
+    
+    buttons.forEach(button => {
+        const hadIndicator = button.classList.contains('recording');
+        updateButtonIndicator(button);
+        const hasIndicator = button.classList.contains('recording');
+        
+        if (hasIndicator) {
+            indicatorCount++;
+            if (!hadIndicator) {
+                console.log('Adding indicator to:', button.dataset.actionType, button.dataset.sceneName);
+            }
+        } else if (hadIndicator) {
+            console.log('Removing indicator from:', button.dataset.actionType, button.dataset.sceneName);
+        }
+    });
+    
+    console.log(`Updated indicators: ${indicatorCount} buttons active`);
 }
 
 // Render empty cell
@@ -195,37 +280,14 @@ async function pressButton(position, actionType) {
     try {
         await window.go.main.App.PressButton(position);
         
-        // Update recording indicators immediately after pressing recording buttons
-        if (isRecordingAction(actionType)) {
+        // Update indicators immediately after pressing toggle or scene buttons
+        if (isToggleAction(actionType) || actionType === 'switch_scene') {
             setTimeout(() => updateStatusFromBackend(), 100);
         }
     } catch (err) {
         console.error('Failed to press button:', err);
         alert('Error: ' + err);
     }
-}
-
-// Update recording indicators on all buttons
-function updateRecordingIndicators() {
-    const buttons = document.querySelectorAll('.deck-button');
-    let recordingButtonCount = 0;
-    
-    buttons.forEach(button => {
-        const actionType = button.dataset.actionType;
-        
-        if (isRecordingAction(actionType)) {
-            recordingButtonCount++;
-            if (obsStatus.recording) {
-                console.log('Adding recording indicator to button:', actionType);
-                button.classList.add('recording');
-            } else {
-                console.log('Removing recording indicator from button:', actionType);
-                button.classList.remove('recording');
-            }
-        }
-    });
-    
-    console.log(`Updated ${recordingButtonCount} recording buttons. Recording: ${obsStatus.recording}`);
 }
 
 // Start status polling
@@ -241,19 +303,37 @@ async function updateStatusFromBackend() {
     try {
         const status = await window.go.main.App.GetOBSStatus();
         
-        // Track if recording state changed
-        const wasRecording = obsStatus.recording;
+        // Track what changed
+        const streamingChanged = obsStatus.streaming !== (status.streaming || false);
+        const recordingChanged = obsStatus.recording !== (status.recording || false);
+        const sceneChanged = obsStatus.currentScene !== (status.current_scene || '');
         
+        // Update state
         obsStatus.streaming = status.streaming || false;
         obsStatus.recording = status.recording || false;
+        obsStatus.currentScene = status.current_scene || '';
         
-        // Debug log
-        console.log('Status update - Streaming:', obsStatus.streaming, 'Recording:', obsStatus.recording);
+        // Debug log ALL status updates to see what we're getting
+        console.log('Status update:', {
+            streaming: obsStatus.streaming,
+            recording: obsStatus.recording,
+            currentScene: obsStatus.currentScene
+        });
         
-        // If recording state changed, update button indicators
-        if (wasRecording !== obsStatus.recording) {
+        // Debug log significant changes
+        if (streamingChanged) {
+            console.log('Streaming state changed:', obsStatus.streaming);
+        }
+        if (recordingChanged) {
             console.log('Recording state changed:', obsStatus.recording);
-            updateRecordingIndicators();
+        }
+        if (sceneChanged) {
+            console.log('Scene changed:', obsStatus.currentScene);
+        }
+        
+        // Update all indicators if anything changed
+        if (streamingChanged || recordingChanged || sceneChanged) {
+            updateAllIndicators();
         }
     } catch (err) {
         console.error('Failed to get status:', err);
