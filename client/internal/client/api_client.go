@@ -16,9 +16,9 @@ import (
 
 // APIClient handles communication with YOUR actual robo-stream server
 type APIClient struct {
-	serverURL string
-	sessionID string
-	clientID  string
+	serverURL  string
+	sessionID  string
+	clientID   string
 	httpClient *http.Client
 	logger     *logrus.Logger
 }
@@ -26,23 +26,23 @@ type APIClient struct {
 // loadClientID loads or creates a persistent client ID
 func loadClientID(configDir string) string {
 	idFile := filepath.Join(configDir, "client_id.txt")
-	
+
 	// Try to load existing ID
 	data, err := os.ReadFile(idFile)
 	if err == nil && len(data) > 0 {
 		return string(data)
 	}
-	
+
 	// Generate new ID
 	hostname, _ := os.Hostname()
 	if hostname == "" {
 		hostname = "unknown"
 	}
 	clientID := fmt.Sprintf("client-%s-%d", hostname, time.Now().Unix())
-	
+
 	// Save for next time
 	os.WriteFile(idFile, []byte(clientID), 0644)
-	
+
 	return clientID
 }
 
@@ -53,6 +53,11 @@ func NewAPIClient(serverURL string, logger *logrus.Logger, configDir string) *AP
 		clientID:  loadClientID(configDir),
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
+			// Transport: &http.Transport{
+			// 	TLSClientConfig: &tls.Config{
+			// 		InsecureSkipVerify: true, // Skip cert verification for dev
+			// 	},
+			// },
 		},
 		logger: logger,
 	}
@@ -60,9 +65,9 @@ func NewAPIClient(serverURL string, logger *logrus.Logger, configDir string) *AP
 
 // RegisterResponse from server
 type RegisterResponse struct {
-	SessionID string                        `json:"session_id"`
-	ConfigID  string                        `json:"config_id"`
-	Config    config.ResolvedConfiguration  `json:"config"`
+	SessionID string                       `json:"session_id"`
+	ConfigID  string                       `json:"config_id"`
+	Config    config.ResolvedConfiguration `json:"config"`
 }
 
 // GetServerInfo gets server information
@@ -130,7 +135,7 @@ func (c *APIClient) Register() (*config.ResolvedConfiguration, error) {
 	// Store session ID for future requests
 	c.sessionID = regResp.SessionID
 
-	c.logger.Infof("Registered with server - Session: %s, Config: %s", 
+	c.logger.Infof("Registered with server - Session: %s, Config: %s",
 		regResp.SessionID, regResp.ConfigID)
 
 	return &regResp.Config, nil
