@@ -71,3 +71,6 @@ venv
 # Claude
 .claude
 
+# No build directories
+build
+

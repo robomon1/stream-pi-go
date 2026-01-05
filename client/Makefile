@@ -1,4 +1,4 @@
-# Robo-Stream Server Makefile
+# Robo-Stream Client Makefile
 
 .PHONY: all dev build build-all setup-icons clean help
 
@@ -7,8 +7,7 @@ all: build
 
 # Setup icons - copy from icons/ to build/ directories
 setup-icons:
-	@echo "📦 Setting up server icons..."
-	@mkdir -p build
+	@echo "📦 Setting up client icons..."
 	@mkdir -p build/darwin
 	@mkdir -p build/windows
 	@mkdir -p build/linux
@@ -28,21 +27,21 @@ setup-icons:
 		cp icons/linux/icon.png build/linux/; \
 		echo "  ✓ Linux icon copied"; \
 	fi
-	@echo "✅ Server icons ready"
+	@echo "✅ Client icons ready"
 
 # Development mode
 dev: setup-icons
-	@echo "🚀 Starting server in dev mode..."
+	@echo "🚀 Starting client in dev mode..."
 	wails dev
 
 # Build for current platform
 build: setup-icons
-	@echo "🔨 Building server for current platform..."
+	@echo "🔨 Building client for current platform..."
 	wails build
 
 # Build for all platforms
 build-all: setup-icons
-	@echo "🔨 Building server for all platforms..."
+	@echo "🔨 Building client for all platforms..."
 	@echo "Building for macOS..."
 	GOOS=darwin GOARCH=amd64 wails build
 	@echo "Building for macOS ARM64..."
@@ -53,20 +52,20 @@ build-all: setup-icons
 	GOOS=linux GOARCH=amd64 wails build
 	@echo "Building for Linux ARM64 (Raspberry Pi)..."
 	GOOS=linux GOARCH=arm64 wails build
-	@echo "✅ All server builds complete"
+	@echo "✅ All client builds complete"
 
 # Clean build artifacts (but keep icons/)
 clean:
-	@echo "🧹 Cleaning server build artifacts..."
+	@echo "🧹 Cleaning client build artifacts..."
 	rm -rf build
 	rm -rf frontend/dist
 	rm -rf frontend/node_modules
 	@echo "  Note: icons/ directory preserved"
-	@echo "✅ Server cleaned"
+	@echo "✅ Client cleaned"
 
 # Help
 help:
-	@echo "Robo-Stream Server - Available targets:"
+	@echo "Robo-Stream Client - Available targets:"
 	@echo "  make dev        - Run in development mode with hot reload"
 	@echo "  make build      - Build for current platform"
 	@echo "  make build-all  - Build for all platforms (macOS, Windows, Linux, ARM)"
@@ -74,5 +73,5 @@ help:
 	@echo "  make setup-icons - Copy icons from icons/ to build/"
 	@echo ""
 	@echo "Icon locations:"
-	@echo "  Source:  server/icons/"
-	@echo "  Build:   server/build/{darwin,windows,linux}/"
+	@echo "  Source:  client/icons/"
+	@echo "  Build:   client/build/{darwin,windows,linux}/"

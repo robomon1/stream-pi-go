@@ -164,7 +164,7 @@ func (a *App) initializeDefaults() {
 		{"Start Record", "Start recording", "circle", "#e74c3c", "start_record", nil},
 		{"Stop Record", "Stop recording", "stop-circle", "#95a5a6", "stop_record", nil},
 		{"Mute Mic", "Mute microphone", "mic-off", "#e67e22", "toggle_input_mute", map[string]interface{}{"input_name": "Mic/Aux"}},
-		{"Main Scene", "Switch to main scene", "layout", "#3498db", "switch_scene", map[string]interface{}{"scene_name": "Main"}},
+		{"Scene", "Switch to main scene", "layout", "#3498db", "switch_scene", map[string]interface{}{"scene_name": "Scene"}},
 	}
 
 	buttonIDs := make([]string, 0, len(defaultButtons))
