@@ -1,0 +1,17 @@
+run:
+  timeout: 5m
+  skip-dirs:
+    - frontend
+    - build
+    - node_modules
+
+linters:
+  enable:
+    - gofmt
+    - govet
+    - errcheck
+    - staticcheck
+    - ineffassign
+
+issues:
+  max-same-issues: 0
