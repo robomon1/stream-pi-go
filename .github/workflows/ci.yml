@@ -165,12 +165,14 @@ jobs:
         with:
           version: latest
           working-directory: server
+          skip-dirs: frontend,build,node_modules
 
       - name: golangci-lint - Client
         uses: golangci/golangci-lint-action@v3
         with:
           version: latest
           working-directory: client
+          skip-dirs: frontend,build,node_modules
 
   lint-frontend:
     name: Lint Frontend Code
