@@ -5,7 +5,6 @@ go 1.22.0
 require (
 	github.com/gorilla/mux v1.8.1
 	github.com/gorilla/websocket v1.5.3
-	// github.com/robomon1/robo-stream/client v0.0.0-20251228213937-2d35cea9be9a
 	github.com/sirupsen/logrus v1.9.3
 	github.com/wailsapp/wails/v2 v2.11.0
 )
