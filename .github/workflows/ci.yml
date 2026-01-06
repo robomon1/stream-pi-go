@@ -58,7 +58,7 @@ jobs:
 
   test-build-linux:
     name: Test Build - Linux
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         app: [client, server]
@@ -151,7 +151,7 @@ jobs:
 
   lint-go:
     name: Lint Go Code
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 
@@ -176,7 +176,7 @@ jobs:
 
   lint-frontend:
     name: Lint Frontend Code
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 
