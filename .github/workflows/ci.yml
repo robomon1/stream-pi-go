@@ -37,10 +37,10 @@ jobs:
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
 
-      - name: Setup icons
-        run: |
-          cd ${{ matrix.app }}
-          make setup-icons
+      # - name: Setup icons
+      #   run: |
+      #     cd ${{ matrix.app }}
+      #     make setup-icons
 
       - name: Build ${{ matrix.app }}
         run: |
@@ -86,10 +86,10 @@ jobs:
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
 
-      - name: Setup icons
-        run: |
-          cd ${{ matrix.app }}
-          make setup-icons
+      # - name: Setup icons
+      #   run: |
+      #     cd ${{ matrix.app }}
+      #     make setup-icons
 
       - name: Build ${{ matrix.app }}
         run: |
@@ -127,11 +127,11 @@ jobs:
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
 
-      - name: Setup icons
-        shell: bash
-        run: |
-          cd ${{ matrix.app }}
-          make setup-icons
+      # - name: Setup icons
+      #   shell: bash
+      #   run: |
+      #     cd ${{ matrix.app }}
+      #     make setup-icons
 
       - name: Build ${{ matrix.app }}
         shell: bash
