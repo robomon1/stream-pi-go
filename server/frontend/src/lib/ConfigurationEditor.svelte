@@ -20,8 +20,14 @@
     currentScene: ''
   };
 
+  let sourceVisibility = {}; // Track which sources are visible
+  let sourceVisibilityVersion = 0;
+
   // Force re-evaluation when obsStatus changes
   $: obsStatusKey = `${obsStatus.streaming}-${obsStatus.recording}-${obsStatus.currentScene}`;
+
+  // Force re-evaluation when sourceVisibility changes
+  sourceVisibilityVersion++;
 
   // Reinitialize icons when edit mode changes or buttons change
   $: if (editMode !== undefined || buttons.length) {
@@ -38,9 +44,16 @@
     
     // Start OBS status polling for indicators
     updateOBSStatus();
-    const interval = setInterval(updateOBSStatus, 2000);
-    
-    return () => clearInterval(interval);
+    const statusInterval = setInterval(updateOBSStatus, 2000);
+
+    // Start source visibility polling
+    updateSourceVisibility();
+    const visibilityInterval = setInterval(updateSourceVisibility, 2000);
+  
+    return () => {
+      clearInterval(statusInterval);
+      clearInterval(visibilityInterval);
+    };
   });
 
   // Update OBS status for indicators
@@ -57,7 +70,47 @@
     }
   }
 
-  // Check if button should show indicator
+  // Add logging to your updateSourceVisibility function
+  async function updateSourceVisibility() {
+    // console.log('🔍 Checking source visibility...');
+    
+    // Loop through buttons array directly
+    for (const button of buttons) {
+      if (!button) continue;
+      
+      const actionType = button.action?.type;
+      // console.log(`  Button ${button.name}: type=${actionType}`);
+      
+      if (actionType === 'toggle_source_visibility' || 
+          actionType === 'show_source' || 
+          actionType === 'hide_source') {
+        
+        const sceneName = button.action.params?.scene_name;
+        const sourceName = button.action.params?.source_name;
+        
+        // console.log(`    → Checking: scene="${sceneName}", source="${sourceName}"`);
+        
+        if (sceneName && sourceName) {
+          try {
+            const visible = await window.go.main.App.GetSourceVisibility(sceneName, sourceName);
+            sourceVisibility[button.id] = visible;
+            // console.log(`    ✅ Result: ${visible ? 'VISIBLE' : 'HIDDEN'}, stored at key="${button.id}"`);
+          } catch (err) {
+            console.error(`    ❌ Error:`, err);
+            sourceVisibility[button.id] = false;
+          }
+        }
+      }
+    }
+    
+    // console.log('📊 Final sourceVisibility object:', sourceVisibility);
+    
+    // Force Svelte to re-render
+    sourceVisibility = { ...sourceVisibility };
+    sourceVisibilityVersion++;
+  }
+
+  // Add logging to shouldShowIndicator
   function shouldShowIndicator(button) {
     if (!button?.action || editMode) return false;
     
@@ -73,9 +126,18 @@
     if (actionType === 'switch_scene' && sceneName) {
       return sceneName === obsStatus.currentScene;
     }
-    
+
+    // Source visibility
+    if (actionType === 'toggle_source_visibility' || 
+        actionType === 'show_source' || 
+        actionType === 'hide_source') {
+      const result = sourceVisibility[button.id] === true;
+      console.log(`🔍 Checking indicator for "${button.name}" (id=${button.id}): visibility=${sourceVisibility[button.id]}, result=${result}`);
+      return result;
+    }
+
     return false;
-  }
+  }  
 
   function isToggleAction(actionType) {
     const toggleActions = [
@@ -100,8 +162,8 @@
     // Toggle actions: show when state IS active
     if (actionType === 'toggle_stream') return obsStatus.streaming;
     if (actionType === 'toggle_record') return obsStatus.recording;
-    if (actionType === 'toggle_replay_buffer') return obsStatus.replayBuffer || false;
-    
+    if (actionType === 'toggle_replay_buffer') return obsStatus.replayBuffer || false;    
+
     return false;
   }
 
@@ -387,14 +449,22 @@
     if (!button || editMode) return;  // Don't execute in edit mode
     
     try {
-      console.log('Executing button action:', button.name, button.action);
+      // console.log('Executing button action:', button.name, button.action);
       await window.go.main.App.ExecuteAction(button.action);
-      console.log('Action executed successfully');
+      // console.log('Action executed successfully');
       
       // Update status immediately after toggle/scene actions
       const actionType = button.action.type;
+      // console.log('actionType:', actionType);
       if (isToggleAction(actionType) || actionType === 'switch_scene') {
         setTimeout(updateOBSStatus, 500);
+      }
+
+      // Update source immediately after toggle/source actions
+      if (actionType === 'toggle_source_visibility' || 
+          actionType === 'show_source' || 
+          actionType === 'hide_source') {
+        setTimeout(updateSourceVisibility, 500);
       }
     } catch (err) {
       console.error('Failed to execute action:', err);
@@ -522,7 +592,7 @@
                       <div 
                         class="button-display" 
                         class:clickable={!editMode}
-                        class:active={obsStatusKey && shouldShowIndicator(button)}
+                        class:active={(obsStatusKey || sourceVisibilityVersion > 0) && shouldShowIndicator(button)}
                         style="background: {button.color}"
                         on:click={() => executeButtonAction(button)}
                       >

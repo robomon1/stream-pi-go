@@ -40,6 +40,8 @@ export function GetSession(arg1:string):Promise<models.ClientSession>;
 
 export function GetSessions():Promise<Array<models.ClientSession>>;
 
+export function GetSourceVisibility(arg1:string,arg2:string):Promise<boolean>;
+
 export function ResolveConfiguration(arg1:string):Promise<models.ResolvedConfiguration>;
 
 export function SetDefaultConfiguration(arg1:string):Promise<void>;

@@ -418,6 +418,18 @@ func (a *App) ExecuteAction(action models.ButtonAction) error {
 	return a.obsManager.ExecuteAction(action)
 }
 
+// GetSourceVisibility checks if a source is currently visible
+func (a *App) GetSourceVisibility(sceneName, sourceName string) (bool, error) {
+	// log.Printf("Checking visibility: scene=%s, source=%s", sceneName, sourceName)
+	visible, err := a.obsManager.GetSourceVisibility(sceneName, sourceName)
+	if err != nil {
+		log.Printf("Failed to check visibility: %v", err)
+		return false, err
+	}
+	// log.Printf("Source %s is visible: %v", sourceName, visible)
+	return visible, nil
+}
+
 // Test configuration by executing all actions in preview mode
 func (a *App) TestConfiguration(configID string) error {
 	config, err := a.configManager.Resolve(configID)

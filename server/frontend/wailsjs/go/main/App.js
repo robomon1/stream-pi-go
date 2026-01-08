@@ -78,6 +78,10 @@ export function GetSessions() {
   return window['go']['main']['App']['GetSessions']();
 }
 
+export function GetSourceVisibility(arg1, arg2) {
+  return window['go']['main']['App']['GetSourceVisibility'](arg1, arg2);
+}
+
 export function ResolveConfiguration(arg1) {
   return window['go']['main']['App']['ResolveConfiguration'](arg1);
 }

@@ -20,6 +20,7 @@
   let scenes = [];
   let inputs = [];
   let loadingOBSData = false;
+  let initialized = false;
 
   $: if (isOpen) {
     loadOBSData();
@@ -49,7 +50,7 @@
     }
   }
 
-  $: if (isOpen && button) {
+  $: if (isOpen && button && !initialized) {
     // Edit mode - load button data
     formData = {
       name: button.name || '',
@@ -59,6 +60,7 @@
       actionType: button.action?.type || 'switch_scene',
       actionParams: { ...button.action?.params } || {}
     };
+    initialized = true;
     testResult = '';
   } else if (isOpen && !button) {
     // Create mode - completely empty to show placeholders
@@ -73,6 +75,10 @@
     testResult = '';
   }
 
+  $: if (!isOpen) {
+    initialized = false;
+  }
+  
   // Watch action type and update params accordingly
   $: {
     // When action type changes, ensure params match
@@ -122,16 +128,65 @@
   ];
 
   const actionTypes = [
+    // ===== SCENES =====
     { value: 'switch_scene', label: 'Switch Scene', params: ['scene_name'] },
+    
+    // ===== STREAMING =====
     { value: 'start_stream', label: 'Start Stream', params: [] },
     { value: 'stop_stream', label: 'Stop Stream', params: [] },
     { value: 'toggle_stream', label: 'Toggle Stream', params: [] },
+    
+    // ===== RECORDING =====
     { value: 'start_record', label: 'Start Recording', params: [] },
     { value: 'stop_record', label: 'Stop Recording', params: [] },
     { value: 'toggle_record', label: 'Toggle Recording', params: [] },
+    { value: 'pause_record', label: 'Pause Recording', params: [] },
+    { value: 'resume_record', label: 'Resume Recording', params: [] },
+    
+    // ===== SOURCE VISIBILITY (NEW!) =====
+    { value: 'toggle_source_visibility', label: 'Toggle Source Visibility', params: ['scene_name', 'source_name'] },
+    { value: 'show_source', label: 'Show Source', params: ['scene_name', 'source_name'] },
+    { value: 'hide_source', label: 'Hide Source', params: ['scene_name', 'source_name'] },
+    
+    // ===== AUDIO INPUTS =====
     { value: 'toggle_input_mute', label: 'Toggle Input Mute', params: ['input_name'] },
     { value: 'mute_input', label: 'Mute Input', params: ['input_name'] },
     { value: 'unmute_input', label: 'Unmute Input', params: ['input_name'] },
+    { value: 'set_input_volume', label: 'Set Input Volume', params: ['input_name', 'volume'] },
+    
+    // ===== VIRTUAL CAMERA =====
+    { value: 'start_virtual_cam', label: 'Start Virtual Camera', params: [] },
+    { value: 'stop_virtual_cam', label: 'Stop Virtual Camera', params: [] },
+    { value: 'toggle_virtual_cam', label: 'Toggle Virtual Camera', params: [] },
+    
+    // ===== REPLAY BUFFER =====
+    { value: 'start_replay_buffer', label: 'Start Replay Buffer', params: [] },
+    { value: 'stop_replay_buffer', label: 'Stop Replay Buffer', params: [] },
+    { value: 'save_replay_buffer', label: 'Save Replay Buffer', params: [] },
+    { value: 'toggle_replay_buffer', label: 'Toggle Replay Buffer', params: [] },
+    
+    // ===== FILTERS =====
+    { value: 'toggle_source_filter', label: 'Toggle Source Filter', params: ['source_name', 'filter_name'] },
+    { value: 'enable_source_filter', label: 'Enable Source Filter', params: ['source_name', 'filter_name'] },
+    { value: 'disable_source_filter', label: 'Disable Source Filter', params: ['source_name', 'filter_name'] },
+    
+    // ===== MEDIA CONTROLS =====
+    { value: 'play_pause_media', label: 'Play/Pause Media', params: ['source_name'] },
+    { value: 'restart_media', label: 'Restart Media', params: ['source_name'] },
+    { value: 'stop_media', label: 'Stop Media', params: ['source_name'] },
+    { value: 'next_media', label: 'Next Media', params: ['source_name'] },
+    { value: 'previous_media', label: 'Previous Media', params: ['source_name'] },
+    
+    // ===== TRANSITIONS =====
+    { value: 'trigger_transition', label: 'Trigger Transition', params: [] },
+    { value: 'set_current_transition', label: 'Set Transition', params: ['transition_name'] },
+    { value: 'set_transition_duration', label: 'Set Transition Duration', params: ['duration'] },
+    
+    // ===== STUDIO MODE =====
+    { value: 'toggle_studio_mode', label: 'Toggle Studio Mode', params: [] },
+    { value: 'enable_studio_mode', label: 'Enable Studio Mode', params: [] },
+    { value: 'disable_studio_mode', label: 'Disable Studio Mode', params: [] },
+    { value: 'set_preview_scene', label: 'Set Preview Scene', params: ['scene_name'] },
   ];
 
   function handleSave() {
@@ -273,6 +328,7 @@
                   />
                   <p class="help-text">OBS not connected - enter scene name manually</p>
                 {/if}
+                
               {:else if param === 'input_name'}
                 <label>Input Name</label>
                 {#if inputs.length > 0}
@@ -289,8 +345,60 @@
                   />
                   <p class="help-text">OBS not connected - enter input name manually</p>
                 {/if}
+                
+              {:else if param === 'source_name'}
+                <label>Source Name</label>
+                <input 
+                  type="text" 
+                  bind:value={formData.actionParams[param]} 
+                  placeholder="Webcam"
+                />
+                <p class="help-text">Enter the exact source name from OBS (case-sensitive)</p>
+                
+              {:else if param === 'filter_name'}
+                <label>Filter Name</label>
+                <input 
+                  type="text" 
+                  bind:value={formData.actionParams[param]} 
+                  placeholder="Color Correction"
+                />
+                <p class="help-text">Enter the exact filter name from OBS</p>
+                
+              {:else if param === 'transition_name'}
+                <label>Transition Name</label>
+                <input 
+                  type="text" 
+                  bind:value={formData.actionParams[param]} 
+                  placeholder="Fade"
+                />
+                <p class="help-text">Common: Fade, Cut, Slide, Stinger</p>
+                
+              {:else if param === 'volume'}
+                <label>Volume (%)</label>
+                <input 
+                  type="number" 
+                  min="0" 
+                  max="100" 
+                  bind:value={formData.actionParams[param]} 
+                  placeholder="50"
+                />
+                <p class="help-text">Set volume from 0 (silent) to 100 (max)</p>
+                
+              {:else if param === 'duration'}
+                <label>Duration (milliseconds)</label>
+                <input 
+                  type="number" 
+                  min="0" 
+                  bind:value={formData.actionParams[param]} 
+                  placeholder="300"
+                />
+                <p class="help-text">Transition duration in milliseconds (1000 = 1 second)</p>
+                
               {:else}
-                <label>{param.replace('_', ' ')}</label>
+                <!-- Generic fallback for any other parameters -->
+                <label>
+                  {param.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                </label>
                 <input 
                   type="text" 
                   bind:value={formData.actionParams[param]} 

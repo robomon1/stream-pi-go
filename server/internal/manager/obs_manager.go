@@ -7,6 +7,7 @@ import (
 
 	"github.com/andreykaipov/goobs"
 	"github.com/andreykaipov/goobs/api/requests/inputs"
+	"github.com/andreykaipov/goobs/api/requests/sceneitems"
 	"github.com/andreykaipov/goobs/api/requests/scenes"
 	"github.com/robomon1/robo-stream/server/internal/models"
 )
@@ -203,6 +204,43 @@ func (om *OBSManager) ExecuteAction(action models.ButtonAction) error {
 		})
 		return err
 
+	case "toggle_source_visibility":
+		sceneName, ok := action.Params["scene_name"].(string)
+		if !ok {
+			return fmt.Errorf("missing scene_name parameter")
+		}
+		sourceName, ok := action.Params["source_name"].(string)
+		if !ok {
+			return fmt.Errorf("missing source_name parameter")
+		}
+
+		itemResp, err := client.SceneItems.GetSceneItemId(&sceneitems.GetSceneItemIdParams{
+			SceneName:  &sceneName,
+			SourceName: &sourceName,
+		})
+		if err != nil {
+			return err
+		}
+
+		itemID := itemResp.SceneItemId
+
+		stateResp, err := client.SceneItems.GetSceneItemEnabled(&sceneitems.GetSceneItemEnabledParams{
+			SceneName:   &sceneName,
+			SceneItemId: &itemID,
+		})
+		if err != nil {
+			return err
+		}
+
+		newState := !stateResp.SceneItemEnabled
+
+		_, err = client.SceneItems.SetSceneItemEnabled(&sceneitems.SetSceneItemEnabledParams{
+			SceneName:        &sceneName,
+			SceneItemId:      &itemID,
+			SceneItemEnabled: &newState,
+		})
+		return err
+
 	default:
 		return fmt.Errorf("unknown action type: %s", action.Type)
 	}
@@ -244,4 +282,37 @@ func (om *OBSManager) GetStatus() (map[string]interface{}, error) {
 		"recording":     recordResp.OutputActive,
 		"current_scene": sceneResp.CurrentProgramSceneName,
 	}, nil
+}
+
+// GetSourceVisibility checks if a source is visible in a scene
+func (om *OBSManager) GetSourceVisibility(sceneName, sourceName string) (bool, error) {
+	om.mu.RLock()
+	client := om.client
+	om.mu.RUnlock()
+
+	if client == nil {
+		return false, fmt.Errorf("not connected to OBS")
+	}
+
+	// Get the scene item ID
+	itemResp, err := client.SceneItems.GetSceneItemId(&sceneitems.GetSceneItemIdParams{
+		SceneName:  &sceneName,
+		SourceName: &sourceName,
+	})
+	if err != nil {
+		return false, err
+	}
+
+	itemID := itemResp.SceneItemId
+
+	// Get visibility state
+	stateResp, err := client.SceneItems.GetSceneItemEnabled(&sceneitems.GetSceneItemEnabledParams{
+		SceneName:   &sceneName,
+		SceneItemId: &itemID,
+	})
+	if err != nil {
+		return false, err
+	}
+
+	return stateResp.SceneItemEnabled, nil
 }
