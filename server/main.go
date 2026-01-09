@@ -19,7 +19,7 @@ import (
 //go:embed all:frontend/dist
 var assets embed.FS
 
-//go:embed build/appicon.png
+//go:embed icons/appicon.png
 var icon []byte
 
 // loadIcon returns the appropriate icon for the current platform
