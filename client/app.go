@@ -74,6 +74,22 @@ func saveServerURL(configDir, url string) error {
 	return os.WriteFile(urlFile, []byte(url), 0644)
 }
 
+// loadLastConfigID loads the saved configuration ID
+func loadLastConfigID(configDir string) string {
+	configFile := filepath.Join(configDir, "last_config_id.txt")
+	data, err := os.ReadFile(configFile)
+	if err != nil {
+		return "" // No saved config
+	}
+	return strings.TrimSpace(string(data))
+}
+
+// saveLastConfigID saves the configuration ID
+func saveLastConfigID(configDir, configID string) error {
+	configFile := filepath.Join(configDir, "last_config_id.txt")
+	return os.WriteFile(configFile, []byte(configID), 0644)
+}
+
 // NewApp creates a new App application struct
 func NewApp() *App {
 	logger := logrus.New()
@@ -122,15 +138,37 @@ func (a *App) connectAndLoad() {
 	a.logger.Infof("Connected to server: %v", info)
 	wailsruntime.EventsEmit(a.ctx, "connected", info)
 
-	// Register with server and get default configuration
-	resolved, err := a.apiClient.Register()
-	if err != nil {
-		a.logger.Errorf("Failed to register with server: %v", err)
-		wailsruntime.EventsEmit(a.ctx, "config_error", err.Error())
-		return
+	// Try to load last used configuration
+	lastConfigID := loadLastConfigID(a.configDir)
+	var resolved *config.ResolvedConfiguration
+
+	if lastConfigID != "" {
+		a.logger.Infof("Attempting to load last used configuration: %s", lastConfigID)
+		resolved, err = a.apiClient.GetConfiguration(lastConfigID)
+		if err != nil {
+			a.logger.Warnf("Failed to load last configuration (may have been deleted): %v", err)
+			a.logger.Info("Falling back to default configuration")
+			resolved = nil
+		}
+	}
+
+	// Fallback to server default if no saved config or if it failed to load
+	if resolved == nil {
+		a.logger.Info("Loading default configuration from server")
+		resolved, err = a.apiClient.Register()
+		if err != nil {
+			a.logger.Errorf("Failed to register with server: %v", err)
+			wailsruntime.EventsEmit(a.ctx, "config_error", err.Error())
+			return
+		}
 	}
 
 	a.configuration = resolved
+
+	// Save this configuration ID for next time
+	if err := saveLastConfigID(a.configDir, resolved.ID); err != nil {
+		a.logger.Warnf("Failed to save last config ID: %v", err)
+	}
 
 	a.logger.Infof("Loaded configuration: %s (%dx%d grid, %d buttons)",
 		resolved.Name, resolved.Grid.Rows, resolved.Grid.Cols, len(resolved.Buttons))
@@ -158,10 +196,39 @@ func (a *App) LoadConfiguration(configID string) error {
 	resolved, err := a.apiClient.GetConfiguration(configID)
 	if err != nil {
 		a.logger.Errorf("Failed to load configuration: %v", err)
+
+		// If config was deleted, fallback to default
+		if strings.Contains(err.Error(), "404") || strings.Contains(err.Error(), "not found") {
+			a.logger.Warn("Configuration not found (may have been deleted), loading default")
+
+			// Get default configuration
+			defaultConfig, defaultErr := a.apiClient.Register()
+			if defaultErr != nil {
+				return fmt.Errorf("failed to load default configuration: %w", defaultErr)
+			}
+
+			a.configuration = defaultConfig
+
+			// Save the default config ID
+			if saveErr := saveLastConfigID(a.configDir, defaultConfig.ID); saveErr != nil {
+				a.logger.Warnf("Failed to save config ID: %v", saveErr)
+			}
+
+			a.logger.Infof("Loaded default configuration: %s", defaultConfig.Name)
+			wailsruntime.EventsEmit(a.ctx, "configuration_loaded", defaultConfig)
+
+			return nil
+		}
+
 		return err
 	}
 
 	a.configuration = resolved
+
+	// Save this configuration ID for next time
+	if err := saveLastConfigID(a.configDir, resolved.ID); err != nil {
+		a.logger.Warnf("Failed to save last config ID: %v", err)
+	}
 
 	a.logger.Infof("Loaded configuration: %s", resolved.Name)
 	wailsruntime.EventsEmit(a.ctx, "configuration_loaded", resolved)

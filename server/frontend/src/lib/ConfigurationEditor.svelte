@@ -1137,7 +1137,7 @@
     content: '';
     position: absolute;
     top: 8px;
-    right: 8px;
+    left: 8px;  /* ← CHANGED FROM right TO left */
     width: 20px;
     height: 20px;
     background: white;
