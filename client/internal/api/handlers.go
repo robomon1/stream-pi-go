@@ -105,7 +105,7 @@ func (h *Handler) PressButton(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.logger.Infof("Button pressed: %s (action: %s)", button.Text, button.Action.Type)
+	// h.logger.Infof("Button pressed: %s (action: %s)", button.Text, button.Action.Type)
 
 	// Execute the action
 	resp, err := h.obsClient.ExecuteAction(button.Action.Type, button.Action.Params)

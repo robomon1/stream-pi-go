@@ -57,7 +57,7 @@ func (s *Server) setupRoutes() {
 	s.router.HandleFunc("/api/obs/status", s.getOBSStatus).Methods("GET", "OPTIONS")
 	s.router.HandleFunc("/api/obs/scenes", s.getScenes).Methods("GET", "OPTIONS")
 	s.router.HandleFunc("/api/obs/inputs", s.getInputs).Methods("GET", "OPTIONS")
-
+	s.router.HandleFunc("/api/obs/source-visibility", s.getSourceVisibility).Methods("GET", "OPTIONS")
 	// Health check
 	s.router.HandleFunc("/api/health", s.healthCheck).Methods("GET", "OPTIONS")
 }
@@ -89,7 +89,7 @@ func (s *Server) Start(addr string) error {
 // healthCheck returns server health status
 func (s *Server) healthCheck(w http.ResponseWriter, r *http.Request) {
 	s.respondJSON(w, http.StatusOK, map[string]interface{}{
-		"status": "ok",
+		"status":        "ok",
 		"obs_connected": s.obsManager.IsConnected(),
 	})
 }
@@ -329,6 +329,26 @@ func (s *Server) getInputs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.respondJSON(w, http.StatusOK, inputs)
+}
+
+func (s *Server) getSourceVisibility(w http.ResponseWriter, r *http.Request) {
+	sceneName := r.URL.Query().Get("scene")
+	sourceName := r.URL.Query().Get("source")
+
+	if sceneName == "" || sourceName == "" {
+		s.respondError(w, http.StatusBadRequest, "missing scene or source parameter")
+		return
+	}
+
+	visible, err := s.obsManager.GetSourceVisibility(sceneName, sourceName)
+	if err != nil {
+		s.respondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	s.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"visible": visible,
+	})
 }
 
 // ==================== HELPERS ====================

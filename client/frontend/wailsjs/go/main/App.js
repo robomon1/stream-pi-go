@@ -22,6 +22,10 @@ export function GetServerURL() {
   return window['go']['main']['App']['GetServerURL']();
 }
 
+export function GetSourceVisibility(arg1, arg2) {
+  return window['go']['main']['App']['GetSourceVisibility'](arg1, arg2);
+}
+
 export function GetStatus() {
   return window['go']['main']['App']['GetStatus']();
 }

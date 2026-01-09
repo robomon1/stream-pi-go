@@ -12,6 +12,8 @@ export function GetOBSStatus():Promise<Record<string, any>>;
 
 export function GetServerURL():Promise<string>;
 
+export function GetSourceVisibility(arg1:string,arg2:string):Promise<boolean>;
+
 export function GetStatus():Promise<Record<string, any>>;
 
 export function LoadConfiguration(arg1:string):Promise<void>;

@@ -198,7 +198,7 @@ func (a *App) PressButton(position string) error {
 		return fmt.Errorf("no button at position: %s", position)
 	}
 
-	a.logger.Infof("Button pressed: %s (action: %s)", button.Text, button.Action.Type)
+	// a.logger.Infof("Button pressed: %s (action: %s)", button.Text, button.Action.Type)
 
 	err = a.apiClient.ExecuteAction(button.Action)
 	if err != nil {
@@ -236,6 +236,18 @@ func (a *App) GetOBSStatus() (map[string]interface{}, error) {
 		}, err
 	}
 	return status, nil
+}
+
+// GetSourceVisibility checks if a source is currently visible
+func (a *App) GetSourceVisibility(sceneName, sourceName string) (bool, error) {
+	// a.logger.Infof("Checking visibility: scene=%s, source=%s", sceneName, sourceName)
+	visible, err := a.apiClient.GetSourceVisibility(sceneName, sourceName)
+	if err != nil {
+		a.logger.Errorf("Failed to check visibility: %v", err)
+		return false, err
+	}
+	// a.logger.Infof("Source %s is visible: %v", sourceName, visible)
+	return visible, nil
 }
 
 // SetServerURL sets a new server URL and reconnects

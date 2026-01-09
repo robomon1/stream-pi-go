@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	neturl "net/url"
 	"os"
 	"path/filepath"
 	"time"
@@ -318,4 +319,45 @@ func (c *APIClient) GetOBSStatus() (map[string]interface{}, error) {
 	}
 
 	return status, nil
+}
+
+// GetSourceVisibility checks if a source is visible in a scene
+func (c *APIClient) GetSourceVisibility(sceneName, sourceName string) (bool, error) {
+	// Build URL with proper encoding
+	baseURL := fmt.Sprintf("%s/api/obs/source-visibility", c.serverURL)
+
+	// Use url.Values for proper query parameter encoding
+	params := neturl.Values{}
+	params.Add("scene", sceneName)
+	params.Add("source", sourceName)
+
+	fullURL := fmt.Sprintf("%s?%s", baseURL, params.Encode())
+
+	resp, err := c.httpClient.Get(fullURL)
+	if err != nil {
+		return false, fmt.Errorf("failed to get source visibility: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return false, fmt.Errorf("server returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return false, fmt.Errorf("failed to read response: %w", err)
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal(body, &result); err != nil {
+		return false, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	visible, ok := result["visible"].(bool)
+	if !ok {
+		return false, fmt.Errorf("invalid response format")
+	}
+
+	return visible, nil
 }

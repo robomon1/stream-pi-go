@@ -6,6 +6,7 @@ let obsStatus = {
     recording: false,
     currentScene: ''
 };
+let sourceVisibility = {};
 
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
@@ -142,52 +143,73 @@ function renderButtonGrid() {
 
 // Render a button
 function renderButton(button) {
-    const grid = document.getElementById('button-grid');
-    const buttonEl = document.createElement('button');
-    buttonEl.className = 'deck-button';
-    buttonEl.style.backgroundColor = button.color;
-    buttonEl.dataset.position = `btn-${button.row}-${button.col}`;
-    buttonEl.dataset.buttonId = button.id;
-    buttonEl.dataset.actionType = button.action.type; // Store action type
-    
-    // For scene buttons, store the scene name (it's in action.params.scene_name)
-    if (button.action.type === 'switch_scene' && button.action.params?.scene_name) {
-        buttonEl.dataset.sceneName = button.action.params.scene_name;
-        console.log('Scene button created:', button.text, 'scene:', button.action.params.scene_name);
-    }
+  const grid = document.getElementById('button-grid');
+  const buttonEl = document.createElement('button');
+  buttonEl.className = 'deck-button';
+  buttonEl.style.backgroundColor = button.color;
+  buttonEl.dataset.position = `btn-${button.row}-${button.col}`;
+  buttonEl.dataset.buttonId = button.id;
+  buttonEl.dataset.actionType = button.action.type; // Store action type
+  
+  // For scene buttons, store the scene name (it's in action.params.scene_name)
+  if (button.action.type === 'switch_scene' && button.action.params?.scene_name) {
+      buttonEl.dataset.sceneName = button.action.params.scene_name;
+      console.log('Scene button created:', button.text, 'scene:', button.action.params.scene_name);
+  }
 
-    buttonEl.innerHTML = `
-        <i data-lucide="${button.icon || 'square'}"></i>
-        <span class="button-text">${button.text}</span>
-    `;
+  // For source visibility buttons, store params
+  if ((button.action.type === 'toggle_source_visibility' ||
+      button.action.type === 'show_source' ||
+      button.action.type === 'hide_source') &&
+      button.action.params) {
+      buttonEl.dataset.sceneName = button.action.params.scene_name || '';
+    buttonEl.dataset.sourceName = button.action.params.source_name || '';
+    console.log('Source button created:', button.text, 
+      'scene:', button.action.params.scene_name,
+      'source:', button.action.params.source_name);
+  }
 
-    // Check if this button should show indicator based on current state
-    updateButtonIndicator(buttonEl);
+  buttonEl.innerHTML = `
+      <i data-lucide="${button.icon || 'square'}"></i>
+      <span class="button-text">${button.text}</span>
+  `;
 
-    // Press by position
-    buttonEl.addEventListener('click', () => pressButton(`btn-${button.row}-${button.col}`, button.action.type));
+  // Check if this button should show indicator based on current state
+  updateButtonIndicator(buttonEl);
 
-    grid.appendChild(buttonEl);
+  // Press by position
+  buttonEl.addEventListener('click', () => pressButton(`btn-${button.row}-${button.col}`, button.action.type));
+
+  grid.appendChild(buttonEl);
 }
 
 // Check if a button should show the indicator based on current OBS state
 function shouldShowIndicator(buttonEl) {
-    const actionType = buttonEl.dataset.actionType;
-    const sceneName = buttonEl.dataset.sceneName;
-    
-    // Check toggle actions
-    if (isToggleAction(actionType)) {
-        return isToggleActive(actionType);
-    }
-    
-    // Check scene buttons
-    if (actionType === 'switch_scene' && sceneName) {
-        const matches = sceneName === obsStatus.currentScene;
-        console.log('Scene check:', sceneName, 'vs current:', obsStatus.currentScene, '= match:', matches);
-        return matches;
-    }
-    
-    return false;
+  const actionType = buttonEl.dataset.actionType;
+  const sceneName = buttonEl.dataset.sceneName;
+  
+  // Check toggle actions
+  if (isToggleAction(actionType)) {
+      return isToggleActive(actionType);
+  }
+  
+  // Check scene buttons
+  if (actionType === 'switch_scene' && sceneName) {
+      const matches = sceneName === obsStatus.currentScene;
+      console.log('Scene check:', sceneName, 'vs current:', obsStatus.currentScene, '= match:', matches);
+      return matches;
+  }
+  
+  // Check source visibility buttons
+  if (actionType === 'toggle_source_visibility' || 
+    actionType === 'show_source' || 
+    actionType === 'hide_source') {
+    const buttonId = buttonEl.dataset.buttonId;
+    const visible = sourceVisibility[buttonId] === true;
+    console.log(`  Source button ${buttonId}: ${visible ? 'visible' : 'hidden'}`);
+    return visible;
+  }
+  return false;
 }
 
 // Check if action type is a toggle
@@ -268,7 +290,7 @@ function renderEmptyCell() {
 
 // Press button by position
 async function pressButton(position, actionType) {
-    console.log('Button pressed:', position, 'action:', actionType);
+    // console.log('Button pressed:', position, 'action:', actionType);
 
     // Visual feedback
     const button = document.querySelector(`[data-position="${position}"]`);
@@ -284,6 +306,14 @@ async function pressButton(position, actionType) {
         if (isToggleAction(actionType) || actionType === 'switch_scene') {
             setTimeout(() => updateStatusFromBackend(), 100);
         }
+
+        // Update source visibility immediately
+        if (actionType === 'toggle_source_visibility' || 
+          actionType === 'show_source' || 
+          actionType === 'hide_source') {
+          setTimeout(() => updateSourceVisibility(), 500);
+        }
+
     } catch (err) {
         console.error('Failed to press button:', err);
         alert('Error: ' + err);
@@ -292,10 +322,11 @@ async function pressButton(position, actionType) {
 
 // Start status polling
 function startStatusPolling() {
-    // Poll every 2 seconds
-    setInterval(async () => {
-        await updateStatusFromBackend();
-    }, 2000);
+  // Poll every 2 seconds
+  setInterval(async () => {
+      await updateStatusFromBackend();
+      await updateSourceVisibility();  // ← ADD THIS
+  }, 2000);
 }
 
 // Update status from backend
@@ -451,4 +482,47 @@ function showConnectionBanner(message, type) {
 function hideConnectionBanner() {
     const banner = document.getElementById('connection-banner');
     banner.classList.remove('show');
+}
+
+// Update source visibility for all source buttons
+async function updateSourceVisibility() {
+  // console.log('🔍 Checking source visibility...');
+  
+  const buttons = document.querySelectorAll('.deck-button');
+  
+  for (const buttonEl of buttons) {
+      const actionType = buttonEl.dataset.actionType;
+      
+      if (actionType === 'toggle_source_visibility' || 
+          actionType === 'show_source' || 
+          actionType === 'hide_source') {
+          
+          const buttonId = buttonEl.dataset.buttonId;
+          
+          // Find the button data to get params
+          if (currentConfiguration && currentConfiguration.buttons) {
+              const button = currentConfiguration.buttons.find(b => b.id === buttonId);
+              if (button && button.action && button.action.params) {
+                  const sceneName = button.action.params.scene_name;
+                  const sourceName = button.action.params.source_name;
+                  
+                  if (sceneName && sourceName) {
+                      try {
+                          const visible = await window.go.main.App.GetSourceVisibility(sceneName, sourceName);
+                          sourceVisibility[buttonId] = visible;
+                          buttonEl.dataset.sourceVisible = visible ? 'true' : 'false';
+                          console.log(`  ${sourceName}: ${visible ? 'visible ✅' : 'hidden ❌'}`);
+                      } catch (err) {
+                          console.log(`  ${sourceName}: error (${err})`);
+                          sourceVisibility[buttonId] = false;
+                          buttonEl.dataset.sourceVisible = 'false';
+                      }
+                  }
+              }
+          }
+      }
+  }
+  
+  // console.log('📊 Source visibility version:', sourceVisibilityVersion);
+  updateAllIndicators();
 }
