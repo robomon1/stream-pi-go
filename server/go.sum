@@ -1,5 +1,5 @@
-github.com/andreykaipov/goobs v1.3.0 h1:iciwZziY8aC286PejMmJXPZCMn5HED/o2mZFQTAS8rU=
-github.com/andreykaipov/goobs v1.3.0/go.mod h1:WnS56smX4QZok4VPldy0jXO3v+HrLXp2ymaOZsh1r3k=
+github.com/andreykaipov/goobs v1.5.6 h1:eIkEqYN99+2VJvmlY/56Ah60nkRKS6efMQvpM3oUgPQ=
+github.com/andreykaipov/goobs v1.5.6/go.mod h1:iSZP93FJ4d9X/U1x4DD4IyILLtig+vViqZWBGjLywcY=
 github.com/bep/debounce v1.2.1 h1:v67fRdBA9UQu2NhLFXrSg0Brw7CexQekrBwDMM8bzeY=
 github.com/bep/debounce v1.2.1/go.mod h1:H8yggRPQKLUhUoqrJC1bO2xNya7vanpDl7xR3ISbCJ0=
 github.com/buger/jsonparser v1.1.1 h1:2PnMjfWD7wBILjqQbt530v576A/cAbQvEW9gGIpYMUs=

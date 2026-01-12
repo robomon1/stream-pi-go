@@ -1,9 +1,9 @@
 module github.com/robomon1/robo-stream/server
 
-go 1.22.0
+go 1.23.0
 
 require (
-	github.com/andreykaipov/goobs v1.3.0
+	github.com/andreykaipov/goobs v1.5.6
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
 	github.com/wailsapp/wails/v2 v2.11.0

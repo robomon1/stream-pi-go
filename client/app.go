@@ -138,28 +138,25 @@ func (a *App) connectAndLoad() {
 	a.logger.Infof("Connected to server: %v", info)
 	wailsruntime.EventsEmit(a.ctx, "connected", info)
 
-	// Try to load last used configuration
-	lastConfigID := loadLastConfigID(a.configDir)
-	var resolved *config.ResolvedConfiguration
-
-	if lastConfigID != "" {
-		a.logger.Infof("Attempting to load last used configuration: %s", lastConfigID)
-		resolved, err = a.apiClient.GetConfiguration(lastConfigID)
-		if err != nil {
-			a.logger.Warnf("Failed to load last configuration (may have been deleted): %v", err)
-			a.logger.Info("Falling back to default configuration")
-			resolved = nil
-		}
+	// ALWAYS register to get a session ID - this is required for ExecuteAction
+	a.logger.Info("Registering with server to get session ID")
+	resolved, err := a.apiClient.Register()
+	if err != nil {
+		a.logger.Errorf("Failed to register with server: %v", err)
+		wailsruntime.EventsEmit(a.ctx, "config_error", err.Error())
+		return
 	}
 
-	// Fallback to server default if no saved config or if it failed to load
-	if resolved == nil {
-		a.logger.Info("Loading default configuration from server")
-		resolved, err = a.apiClient.Register()
+	// After registering, check if we should load a different config
+	lastConfigID := loadLastConfigID(a.configDir)
+	if lastConfigID != "" && lastConfigID != resolved.ID {
+		a.logger.Infof("Attempting to load last used configuration: %s", lastConfigID)
+		altResolved, err := a.apiClient.GetConfiguration(lastConfigID)
 		if err != nil {
-			a.logger.Errorf("Failed to register with server: %v", err)
-			wailsruntime.EventsEmit(a.ctx, "config_error", err.Error())
-			return
+			a.logger.Warnf("Failed to load last configuration (may have been deleted): %v", err)
+			a.logger.Info("Using default configuration from registration")
+		} else {
+			resolved = altResolved
 		}
 	}
 

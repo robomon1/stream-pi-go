@@ -2,9 +2,12 @@
 
 let currentConfiguration = null;
 let obsStatus = {
-    streaming: false,
-    recording: false,
-    currentScene: ''
+  streaming: false,
+  recording: false,
+  currentScene: '',
+  virtualCamActive: false,
+  replayBufferActive: false,
+  studioModeActive: false
 };
 let sourceVisibility = {};
 
@@ -209,43 +212,71 @@ function shouldShowIndicator(buttonEl) {
     console.log(`  Source button ${buttonId}: ${visible ? 'visible' : 'hidden'}`);
     return visible;
   }
+
+  // ← ADD: Virtual Camera indicators
+  if (actionType === 'start_virtual_cam') {
+    return obsStatus.virtualCamActive;
+  }
+  if (actionType === 'stop_virtual_cam') {
+    return !obsStatus.virtualCamActive;
+  }
+  if (actionType === 'toggle_virtual_cam') {
+    return obsStatus.virtualCamActive;
+  }
+
+  // ← ADD: Studio Mode indicators
+  if (actionType === 'toggle_studio_mode' || 
+      actionType === 'enable_studio_mode' || 
+      actionType === 'disable_studio_mode') {
+    return obsStatus.studioModeActive;
+  }
+  if (actionType === 'trigger_transition') {
+    return obsStatus.studioModeActive;
+  }
+
   return false;
 }
 
 // Check if action type is a toggle
 function isToggleAction(actionType) {
-    const toggleActions = [
-        'toggle_stream',
-        'start_stream',
-        'stop_stream',
-        'toggle_record',
-        'start_record',
-        'stop_record',
-        'toggle_replay_buffer',
-        'start_replay_buffer',
-        'stop_replay_buffer'
-    ];
-    return toggleActions.includes(actionType);
+  const toggleActions = [
+      'toggle_stream',
+      'start_stream',
+      'stop_stream',
+      'toggle_record',
+      'start_record',
+      'stop_record',
+      'toggle_replay_buffer',
+      'start_replay_buffer',
+      'stop_replay_buffer',
+      'toggle_virtual_cam',     // ← ADD
+      'start_virtual_cam',      // ← ADD
+      'stop_virtual_cam'        // ← ADD
+  ];
+  return toggleActions.includes(actionType);
 }
 
 // Check if toggle is active
 function isToggleActive(actionType) {
-    // Start actions: show indicator when state IS active
-    if (actionType === 'start_stream') return obsStatus.streaming;
-    if (actionType === 'start_record') return obsStatus.recording;
-    if (actionType === 'start_replay_buffer') return obsStatus.replayBuffer || false;
-    
-    // Stop actions: show indicator when state is NOT active (stopped)
-    if (actionType === 'stop_stream') return !obsStatus.streaming;
-    if (actionType === 'stop_record') return !obsStatus.recording;
-    if (actionType === 'stop_replay_buffer') return !(obsStatus.replayBuffer || false);
-    
-    // Toggle actions: show indicator when state IS active
-    if (actionType === 'toggle_stream') return obsStatus.streaming;
-    if (actionType === 'toggle_record') return obsStatus.recording;
-    if (actionType === 'toggle_replay_buffer') return obsStatus.replayBuffer || false;
-    
-    return false;
+  // Start actions: show indicator when state IS active
+  if (actionType === 'start_stream') return obsStatus.streaming;
+  if (actionType === 'start_record') return obsStatus.recording;
+  if (actionType === 'start_replay_buffer') return obsStatus.replayBufferActive;  // ← FIX
+  if (actionType === 'start_virtual_cam') return obsStatus.virtualCamActive;      // ← ADD
+  
+  // Stop actions: show indicator when state is NOT active (stopped)
+  if (actionType === 'stop_stream') return !obsStatus.streaming;
+  if (actionType === 'stop_record') return !obsStatus.recording;
+  if (actionType === 'stop_replay_buffer') return !obsStatus.replayBufferActive;  // ← FIX
+  if (actionType === 'stop_virtual_cam') return !obsStatus.virtualCamActive;      // ← ADD
+  
+  // Toggle actions: show indicator when state IS active
+  if (actionType === 'toggle_stream') return obsStatus.streaming;
+  if (actionType === 'toggle_record') return obsStatus.recording;
+  if (actionType === 'toggle_replay_buffer') return obsStatus.replayBufferActive; // ← FIX
+  if (actionType === 'toggle_virtual_cam') return obsStatus.virtualCamActive;     // ← ADD
+  
+  return false;
 }
 
 // Update indicator for a specific button
@@ -331,44 +362,63 @@ function startStatusPolling() {
 
 // Update status from backend
 async function updateStatusFromBackend() {
-    try {
-        const status = await window.go.main.App.GetOBSStatus();
-        
-        // Track what changed
-        const streamingChanged = obsStatus.streaming !== (status.streaming || false);
-        const recordingChanged = obsStatus.recording !== (status.recording || false);
-        const sceneChanged = obsStatus.currentScene !== (status.current_scene || '');
-        
-        // Update state
-        obsStatus.streaming = status.streaming || false;
-        obsStatus.recording = status.recording || false;
-        obsStatus.currentScene = status.current_scene || '';
-        
-        // Debug log ALL status updates to see what we're getting
-        console.log('Status update:', {
-            streaming: obsStatus.streaming,
-            recording: obsStatus.recording,
-            currentScene: obsStatus.currentScene
-        });
-        
-        // Debug log significant changes
-        if (streamingChanged) {
-            console.log('Streaming state changed:', obsStatus.streaming);
-        }
-        if (recordingChanged) {
-            console.log('Recording state changed:', obsStatus.recording);
-        }
-        if (sceneChanged) {
-            console.log('Scene changed:', obsStatus.currentScene);
-        }
-        
-        // Update all indicators if anything changed
-        if (streamingChanged || recordingChanged || sceneChanged) {
-            updateAllIndicators();
-        }
-    } catch (err) {
-        console.error('Failed to get status:', err);
-    }
+  try {
+      const status = await window.go.main.App.GetOBSStatus();
+      
+      // Track what changed
+      const streamingChanged = obsStatus.streaming !== (status.streaming || false);
+      const recordingChanged = obsStatus.recording !== (status.recording || false);
+      const sceneChanged = obsStatus.currentScene !== (status.current_scene || '');
+      const virtualCamChanged = obsStatus.virtualCamActive !== (status.virtual_cam_active || false);        // ← ADD
+      const replayBufferChanged = obsStatus.replayBufferActive !== (status.replay_buffer_active || false); // ← ADD
+      const studioModeChanged = obsStatus.studioModeActive !== (status.studio_mode_active || false);       // ← ADD
+      
+      // Update state
+      obsStatus.streaming = status.streaming || false;
+      obsStatus.recording = status.recording || false;
+      obsStatus.currentScene = status.current_scene || '';
+      obsStatus.virtualCamActive = status.virtual_cam_active || false;        // ← ADD
+      obsStatus.replayBufferActive = status.replay_buffer_active || false;    // ← ADD
+      obsStatus.studioModeActive = status.studio_mode_active || false;        // ← ADD
+      
+      // Debug log ALL status updates to see what we're getting
+      console.log('Status update:', {
+          streaming: obsStatus.streaming,
+          recording: obsStatus.recording,
+          currentScene: obsStatus.currentScene,
+          virtualCamActive: obsStatus.virtualCamActive,        // ← ADD
+          replayBufferActive: obsStatus.replayBufferActive,    // ← ADD
+          studioModeActive: obsStatus.studioModeActive         // ← ADD
+      });
+      
+      // Debug log significant changes
+      if (streamingChanged) {
+          console.log('Streaming state changed:', obsStatus.streaming);
+      }
+      if (recordingChanged) {
+          console.log('Recording state changed:', obsStatus.recording);
+      }
+      if (sceneChanged) {
+          console.log('Scene changed:', obsStatus.currentScene);
+      }
+      if (virtualCamChanged) {                                                // ← ADD
+          console.log('Virtual Camera changed:', obsStatus.virtualCamActive);
+      }
+      if (replayBufferChanged) {                                              // ← ADD
+          console.log('Replay Buffer changed:', obsStatus.replayBufferActive);
+      }
+      if (studioModeChanged) {                                                // ← ADD
+          console.log('Studio Mode changed:', obsStatus.studioModeActive);
+      }
+      
+      // Update all indicators if anything changed
+      if (streamingChanged || recordingChanged || sceneChanged || 
+          virtualCamChanged || replayBufferChanged || studioModeChanged) {    // ← ADD
+          updateAllIndicators();
+      }
+  } catch (err) {
+      console.error('Failed to get status:', err);
+  }
 }
 
 // Open settings modal
