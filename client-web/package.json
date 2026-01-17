@@ -1,0 +1,48 @@
+{
+  "name": "robo-stream-client-web",
+  "version": "1.0.0",
+  "description": "Robo-Stream Web Client - OBS Touchscreen Controller",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "cap:init": "cap init",
+    "cap:add:ios": "cap add ios",
+    "cap:add:android": "cap add android",
+    "cap:sync": "npm run build && cap sync",
+    "cap:sync:ios": "npm run build && cap sync ios",
+    "cap:sync:android": "npm run build && cap sync android",
+    "cap:open:ios": "cap open ios",
+    "cap:open:android": "cap open android",
+    "cap:run:ios": "npm run cap:sync:ios && cap run ios",
+    "cap:run:android": "npm run cap:sync:android && cap run android",
+    "ios": "npm run cap:sync:ios && cap open ios",
+    "android": "npm run cap:sync:android && cap open android"
+  },
+  "keywords": [
+    "obs",
+    "streaming",
+    "controller",
+    "touchscreen",
+    "capacitor",
+    "mobile"
+  ],
+  "author": "Robomon",
+  "license": "MIT",
+  "devDependencies": {
+    "@capacitor/cli": "^5.5.0",
+    "typescript": "^5.9.3",
+    "vite": "^5.0.0"
+  },
+  "dependencies": {
+    "@capacitor/android": "^5.5.0",
+    "@capacitor/app": "^5.0.0",
+    "@capacitor/core": "^5.5.0",
+    "@capacitor/haptics": "^5.0.0",
+    "@capacitor/ios": "^5.5.0",
+    "@capacitor/keyboard": "^5.0.0",
+    "@capacitor/splash-screen": "^5.0.0",
+    "@capacitor/status-bar": "^5.0.0"
+  }
+}

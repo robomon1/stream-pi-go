@@ -1,0 +1,70 @@
+ROBO-STREAM WEB CLIENT - FILE LISTING
+======================================
+
+This package contains all files needed for the web client.
+
+Core Files:
+-----------
+package.json          - NPM package configuration
+vite.config.js        - Vite bundler configuration  
+.gitignore            - Git ignore rules
+
+Documentation:
+--------------
+README.md             - Main documentation
+INSTALL.md            - Step-by-step installation guide
+FILES.txt             - This file
+
+Source Files:
+-------------
+src/
+├── index.html        - Main HTML file
+├── css/
+│   └── app.css       - All styles (ported from client)
+└── js/
+    ├── app.js        - Main application logic (Wails → Web ported)
+    └── api.js        - HTTP API client (replaces Go backend)
+
+Public Assets:
+--------------
+public/
+├── manifest.json     - PWA manifest for installable app
+└── icons/
+    └── README.txt    - Instructions for adding app icons
+
+What's Changed from Wails Client:
+----------------------------------
+1. ✅ Removed: All Wails runtime calls
+2. ✅ Added: Pure JavaScript HTTP client (api.js)
+3. ✅ Modified: app.js to use apiClient instead of window.go
+4. ✅ Added: PWA support (manifest.json)
+5. ✅ Added: Vite build system
+6. ✅ Added: localStorage for persistence
+7. ✅ Unchanged: All CSS (already perfect!)
+8. ✅ Unchanged: HTML structure (already perfect!)
+
+Key Features:
+-------------
+✅ Works in any modern browser
+✅ Touch-optimized for mobile
+✅ Installable as PWA
+✅ Same UI as desktop client
+✅ All 40 OBS actions supported
+✅ Real-time status indicators
+✅ Session persistence
+✅ Responsive design
+
+Next Steps After Installation:
+-------------------------------
+1. npm install               - Install dependencies
+2. npm run dev              - Start development server
+3. Configure CORS on server - Add headers to API
+4. Test in browser          - http://localhost:5173
+5. Test on mobile           - http://[your-ip]:5173
+6. Add app icons            - 192x192 and 512x512 PNGs
+7. Build for production     - npm run build
+
+Total Files: 13
+Total Size: ~50KB (before node_modules)
+
+Ready to use! See INSTALL.md for setup instructions.
