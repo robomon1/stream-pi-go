@@ -23,8 +23,6 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 
-# Capacitor
-capacitor.config.ts
 # Capacitor (only ignore build artifacts)
 android/.gradle/
 android/app/build/
