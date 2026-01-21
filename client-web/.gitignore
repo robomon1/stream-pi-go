@@ -29,3 +29,8 @@ android/app/build/
 android/build/
 ios/App/Pods/
 ios/App/build/
+
+# Electron
+electron-dist/
+out/
+

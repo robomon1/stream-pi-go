@@ -2,6 +2,7 @@
   "name": "robo-stream-client-web",
   "version": "1.0.0",
   "description": "Robo-Stream Web Client - OBS Touchscreen Controller",
+  "main": "electron-main.cjs",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -18,8 +19,79 @@
     "cap:run:ios": "npm run cap:sync:ios && cap run ios",
     "cap:run:android": "npm run cap:sync:android && cap run android",
     "ios": "npm run cap:sync:ios && cap open ios",
-    "android": "npm run cap:sync:android && cap open android"
+    "android": "npm run cap:sync:android && cap open android",
+
+    "electron:dev": "NODE_ENV=development electron .",
+    "electron:build": "npm run build && electron-builder",
+    "electron:build:mac": "npm run build && electron-builder --mac",
+    "electron:build:win": "npm run build && electron-builder --win",
+    "electron:build:linux": "npm run build && electron-builder --linux",
+    "electron:build:all": "npm run build && electron-builder -mwl"
   },
+
+  "build": {
+    "appId": "com.robostream.client",
+    "productName": "Robo-Stream-Client",
+    "directories": {
+      "output": "electron-dist",
+      "buildResources": "electron-assets"
+    },
+    "files": [
+      "dist/**/*",
+      "electron-main.cjs",
+      "electron-preload.cjs",
+      "package.json"
+    ],
+    "mac": {
+      "identity": "Apple Development: Robert Ford (38JEVZP58S)",
+      "category": "public.app-category.utilities",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["arm64", "x64"]
+        },
+        {
+          "target": "zip",
+          "arch": ["arm64", "x64"]
+        }
+      ],
+      "icon": "electron-assets/icon.icns"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "electron-assets/icon.ico"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Utility",
+      "icon": "electron-assets/icon.png"
+    },
+    "dmg": {
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+
   "keywords": [
     "obs",
     "streaming",
@@ -32,6 +104,8 @@
   "license": "MIT",
   "devDependencies": {
     "@capacitor/cli": "^5.5.0",
+    "electron": "^40.0.0",
+    "electron-builder": "^26.4.0",
     "typescript": "^5.9.3",
     "vite": "^5.0.0"
   },
