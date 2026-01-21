@@ -80,8 +80,8 @@ func (a *App) startup(ctx context.Context) {
 	// Start API server for clients
 	a.apiServer = api.NewServer(a.configManager, a.sessionManager, a.obsManager)
 	go func() {
-		log.Println("Starting API server on :8080")
-		if err := a.apiServer.Start(":8080"); err != nil {
+		log.Println("Starting API server on 0.0.0.0:8080")
+		if err := a.apiServer.Start("0.0.0.0:8080"); err != nil {
 			log.Printf("API server error: %v", err)
 		}
 	}()

@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"log"
+	"net"
 	"net/http"
 	"strings"
 
@@ -81,7 +82,13 @@ func (s *Server) corsMiddleware(next http.Handler) http.Handler {
 // Start starts the API server
 func (s *Server) Start(addr string) error {
 	log.Printf("API server listening on %s", addr)
-	return http.ListenAndServe(addr, s.router)
+	// forcing to ipv4
+	listener, err := net.Listen("tcp4", addr)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return http.Serve(listener, s.router)
+	// return http.ListenAndServe(addr, s.router)
 }
 
 // ==================== HANDLERS ====================

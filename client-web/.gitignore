@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Capacitor (only ignore build artifacts)
+android/.gradle/
+android/app/build/
+android/build/
+ios/App/Pods/
+ios/App/build/
+
+# Electron
+electron-dist/
+out/
+
