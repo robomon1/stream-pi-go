@@ -7,6 +7,10 @@
 .PHONY: mobile android ios
 .PHONY: release package
 
+# Load environment variables from .env file if it exists
+-include .env
+export
+
 # Version (update this for releases)
 VERSION ?= 1.0.0
 
@@ -40,12 +44,18 @@ help:
 	@echo "  make server-mac       - Build server for macOS (universal)"
 	@echo "  make server-windows   - Build server for Windows"
 	@echo "  make server-linux     - Build server for Linux"
-	@echo "  make client-mac       - Build client for macOS"
+	@echo "  make client-mac       - Build client for macOS (unsigned)"
+	@echo "  make client-mac-signed - Build client for macOS (signed)"
 	@echo "  make client-windows   - Build client for Windows"
 	@echo "  make client-linux     - Build client for Linux"
 	@echo "  make android          - Build Android APK"
 	@echo "  make android-bundle   - Build Android App Bundle (for Play Store)"
 	@echo "  make ios              - Build iOS (opens Xcode)"
+	@echo ""
+	@echo "Code signing (macOS):"
+	@echo "  make client-mac-signed - Sign with keychain cert (may prompt)"
+	@echo "  CSC_LINK=/path/to/cert.p12 CSC_KEY_PASSWORD=pwd make client-mac-signed"
+	@echo "                         - Sign with .p12 file (no prompts)"
 	@echo ""
 	@echo "Version management:"
 	@echo "  make version                                - Show all current versions"
@@ -107,18 +117,30 @@ client-prepare:
 	cd $(CLIENT_DIR) && npm run build
 
 client-mac: client-prepare
-	@echo "🔨 Building client for macOS..."
-	cd $(CLIENT_DIR) && npm run electron:build:mac
-	@echo "✅ Client macOS build complete"
+	@echo "🔨 Building client for macOS (unsigned)..."
+	cd $(CLIENT_DIR) && CSC_IDENTITY_AUTO_DISCOVERY=false npm run electron:build:mac
+	@echo "✅ Client macOS unsigned build complete"
+
+client-mac-signed: client-prepare
+	@echo "🔨 Building client for macOS (signed)..."
+	@if [ -z "$$CSC_LINK" ]; then \
+		echo "⚠️  CSC_LINK not set, using keychain certificate..."; \
+		echo "⚠️  May require keychain password..."; \
+		cd $(CLIENT_DIR) && DEBUG=electron-builder,electron-notarize  npm run electron:build:mac; \
+	else \
+		echo "🔐 Using certificate from: $$CSC_LINK"; \
+		cd $(CLIENT_DIR) && DEBUG=electron-builder,electron-notarize  npm run electron:build:mac; \
+	fi
+	@echo "✅ Client macOS signed build complete"
 
 client-windows: client-prepare
 	@echo "🔨 Building client for Windows..."
-	cd $(CLIENT_DIR) && npm run electron:build:win
+	cd $(CLIENT_DIR) && CSC_IDENTITY_AUTO_DISCOVERY=false npm run electron:build:win
 	@echo "✅ Client Windows build complete"
 
 client-linux: client-prepare
 	@echo "🔨 Building client for Linux..."
-	cd $(CLIENT_DIR) && npm run electron:build:linux
+	cd $(CLIENT_DIR) && CSC_IDENTITY_AUTO_DISCOVERY=false npm run electron:build:linux
 	@echo "✅ Client Linux build complete"
 
 #==============================================================================
@@ -370,8 +392,18 @@ quick-server-mac:
 	cd $(SERVER_DIR) && wails build -platform darwin/universal -clean=false
 
 quick-client-mac:
-	@echo "⚡ Quick client build (macOS only)..."
-	cd $(CLIENT_DIR) && npm run build && npm run electron:build:mac
+	@echo "⚡ Quick client build (macOS only, unsigned)..."
+	cd $(CLIENT_DIR) && npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false npm run electron:build:mac
+
+quick-client-mac-signed:
+	@echo "⚡ Quick client build (macOS only, signed)..."
+	@if [ -z "$$CSC_LINK" ]; then \
+		echo "⚠️  CSC_LINK not set, using keychain certificate..."; \
+		cd $(CLIENT_DIR) && npm run build &&  npm run electron:build:mac; \
+	else \
+		echo "🔐 Using certificate from: $$CSC_LINK"; \
+		cd $(CLIENT_DIR) && npm run build &&  npm run electron:build:mac; \
+	fi
 
 quick-android:
 	@echo "⚡ Quick Android build..."

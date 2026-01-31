@@ -64,8 +64,9 @@ profile.cov
 go.work
 go.work.sum
 
-# env file
-.env
+# env files (ignore all .env* except .env.example)
+.env*
+!.env.example
 venv
 
 # Claude
@@ -73,4 +74,11 @@ venv
 
 # No build directories
 build
+
+# Code signing certificates and keys
+certs/
+*.p12
+*.cer
+*.certSigningRequest
+*.mobileprovision
 
